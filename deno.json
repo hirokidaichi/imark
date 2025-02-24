@@ -1,0 +1,27 @@
+{
+  "tasks": {
+    "dev": "deno run -A src/main.ts",
+    "test": "deno test --allow-read --allow-write --allow-net --allow-env"
+  },
+  "imports": {
+    "@std/assert": "jsr:@std/assert@^1.0.11",
+    "@std/encoding": "jsr:@std/encoding@^1.0.7",
+    "@std/testing": "jsr:@std/testing@^1.0.9",
+    "@std/fs": "jsr:@std/fs@^1.0.13",
+    "@std/path": "jsr:@std/path@^1.0.8",
+    "@cliffy/command": "jsr:@cliffy/command@^1.0.0-rc.7",
+    "@langchain/core": "npm:@langchain/core@^0.3.40",
+    "@langchain/core/": "npm:@langchain/core@0.1.14/",
+    "@langchain/google-genai": "npm:@langchain/google-genai@^0.1.8"
+  },
+  "fmt": {
+    "options": {
+      "lineWidth": 100,
+      "indentWidth": 2,
+      "singleQuote": false
+    }
+  },
+  "compilerOptions": {
+    "strict": true
+  }
+}
