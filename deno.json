@@ -1,7 +1,12 @@
 {
   "tasks": {
     "dev": "deno run -A src/main.ts",
-    "test": "deno test --allow-read --allow-write --allow-net --allow-env"
+    "test": "deno test -A",
+    "install": "deno install -A -f --global -n imark --config deno.json src/main.ts",
+    "check": "deno check **/*.ts",
+    "lint": "deno lint src/",
+    "fmt": "deno fmt",
+    "check-all": "deno task check && deno task lint && deno task fmt --check && deno task test"
   },
   "imports": {
     "@std/assert": "jsr:@std/assert@^1.0.11",
@@ -15,13 +20,25 @@
     "@langchain/google-genai": "npm:@langchain/google-genai@^0.1.8"
   },
   "fmt": {
-    "options": {
-      "lineWidth": 100,
-      "indentWidth": 2,
-      "singleQuote": false
-    }
+    "include": [
+      "src/"
+    ],
+    "lineWidth": 100,
+    "indentWidth": 2,
+    "singleQuote": false,
+    "proseWrap": "preserve"
   },
   "compilerOptions": {
     "strict": true
+  },
+  "lint": {
+    "include": [
+      "src/"
+    ],
+    "rules": {
+      "tags": [
+        "recommended"
+      ]
+    }
   }
 }
