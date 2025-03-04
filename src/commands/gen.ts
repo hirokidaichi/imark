@@ -34,9 +34,9 @@ export class GenCommand extends Command {
 
     this
       .description("画像を生成します")
-      .arguments("[theme:string]")
+      .arguments("<theme:string>")
       .option("-c, --context <file:string>", "コンテキストファイルのパス")
-      .option("-o, --output <file:string>", "出力ファイルのパス")
+      .option("-o, --output <path:string>", "出力パス（ファイルまたはディレクトリ）")
       .option(
         "-s, --size <size:size>",
         `画像サイズプリセット (${Object.keys(SIZE_PRESETS).join(" | ")})`,
@@ -87,7 +87,12 @@ export class GenCommand extends Command {
       .type("size", sizeType)
       .type("aspectRatio", aspectRatioType)
       .type("type", typeType)
-      .action(async (options, theme?: string) => {
+      .action(async (options, theme: string) => {
+        if (!theme) {
+          this.showHelp();
+          return;
+        }
+
         const apiKey = Deno.env.get("GOOGLE_API_KEY");
         if (!apiKey) {
           throw new Error("GOOGLE_API_KEY環境変数が設定されていません");
@@ -108,11 +113,9 @@ export class GenCommand extends Command {
           }
         }
 
-        const prompt = theme
-          ? await geminiClient.generatePrompt(theme, context, { type: options.type as ImageType })
-          : await geminiClient.generatePrompt("画像を生成してください", context, {
-            type: options.type as ImageType,
-          });
+        const prompt = await geminiClient.generatePrompt(theme, context, {
+          type: options.type as ImageType,
+        });
 
         if (options.debug) {
           console.log("\n=== 生成されたプロンプト ===\n");
@@ -128,7 +131,37 @@ export class GenCommand extends Command {
           quality: options.quality,
         });
 
-        const outputPath = options.output || `output_${Date.now()}.${options.format}`;
+        let outputPath = options.output;
+        if (!outputPath) {
+          const fileName = await geminiClient.generateFileName(theme, {
+            maxLength: 40,
+            includeRandomNumber: true,
+          });
+          outputPath = `${fileName}.${options.format}`;
+        } else {
+          try {
+            const stat = await Deno.stat(outputPath);
+            if (stat.isDirectory) {
+              const fileName = await geminiClient.generateFileName(theme, {
+                maxLength: 40,
+                includeRandomNumber: true,
+              });
+              outputPath = `${outputPath}/${fileName}.${options.format}`;
+            }
+          } catch (error) {
+            if (error instanceof Deno.errors.NotFound) {
+              await Deno.mkdir(outputPath, { recursive: true });
+              const fileName = await geminiClient.generateFileName(theme, {
+                maxLength: 40,
+                includeRandomNumber: true,
+              });
+              outputPath = `${outputPath}/${fileName}.${options.format}`;
+            } else {
+              throw error;
+            }
+          }
+        }
+
         await Deno.writeFile(outputPath, imageData);
         console.log(`画像を保存しました: ${outputPath}`);
       });

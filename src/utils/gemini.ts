@@ -12,6 +12,11 @@ export interface GeneratePromptOptions {
   type?: ImageType;
 }
 
+export interface GenerateFileNameOptions {
+  maxLength?: number;
+  includeRandomNumber?: boolean;
+}
+
 export class GeminiClient {
   private genAI: GoogleGenerativeAI;
   private model: GenerativeModel;
@@ -93,6 +98,63 @@ Prompt:
     } catch (error) {
       console.error("Gemini API error:", error);
       throw new Error("キャプションの生成に失敗しました");
+    }
+  }
+
+  async generateFileName(prompt: string, options: GenerateFileNameOptions = {}): Promise<string> {
+    const {
+      maxLength = 50,
+      includeRandomNumber = true,
+    } = options;
+
+    if (!prompt) {
+      throw new Error("プロンプトが空です");
+    }
+
+    const promptForFileName = `
+以下のプロンプトから、画像のファイル名として適切な文字列を生成してください。
+
+プロンプト:
+${prompt}
+
+以下の条件を満たすファイル名を生成してください：
+1. プロンプトの主要な要素を含める
+2. スペースはハイフン（-）に置換
+3. 特殊文字は除去
+4. 小文字のみを使用
+5. 日本語はローマ字に変換
+6. 長さは${maxLength}文字以内
+
+ファイル名:
+`;
+
+    try {
+      const result = await this.model.generateContent(promptForFileName);
+      const response = await result.response;
+      let fileName = response.text().trim();
+
+      // ファイル名の正規化
+      fileName = fileName
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, "") // 英数字とハイフン以外を除去
+        .replace(/-+/g, "-") // 連続するハイフンを1つに
+        .replace(/^-|-$/g, ""); // 先頭と末尾のハイフンを除去
+
+      // 長さ制限
+      if (fileName.length > maxLength) {
+        fileName = fileName.substring(0, maxLength);
+      }
+
+      // ランダムな数字の追加
+      if (includeRandomNumber) {
+        const randomNum = Math.floor(Math.random() * 10000).toString().padStart(4, "0");
+        fileName = `${fileName}-${randomNum}`;
+      }
+
+      return fileName;
+    } catch (error) {
+      console.error("Gemini API error:", error);
+      throw new Error("ファイル名の生成に失敗しました");
     }
   }
 }
