@@ -36,7 +36,11 @@ async function processImages(
   dirPath: string,
   options: { lang: SupportedLanguage; context?: string },
 ): Promise<ProcessResult[]> {
-  const client = new GeminiClient();
+  const apiKey = Deno.env.get("GOOGLE_API_KEY");
+  if (!apiKey) {
+    throw new Error("GOOGLE_API_KEYが設定されていません");
+  }
+  const client = new GeminiClient(apiKey);
   const results: ProcessResult[] = [];
 
   for await (

@@ -14,7 +14,7 @@ Deno.test("mainCommand", async (t) => {
       assertSpyCalls(consoleLogSpy, 1);
       assertEquals(
         consoleLogSpy.calls[0].args[0],
-        "サブコマンドを指定してください: caption または catalog",
+        "サブコマンドを指定してください: caption, catalog, gen",
       );
       assertSpyCalls(exitStub, 1);
       assertEquals(exitStub.calls[0].args[0], 1);
@@ -47,6 +47,7 @@ Deno.test("mainCommand", async (t) => {
       assertEquals(helpText.includes("画像キャプション生成CLIツール"), true);
       assertEquals(helpText.includes("caption"), true);
       assertEquals(helpText.includes("catalog"), true);
+      assertEquals(helpText.includes("gen"), true);
     } finally {
       consoleLogSpy.restore();
       exitStub.restore();

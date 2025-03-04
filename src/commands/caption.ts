@@ -22,7 +22,11 @@ export const captionCommand = new Command()
   )
   .action(async (options, imagePath) => {
     try {
-      const client = new GeminiClient();
+      const apiKey = Deno.env.get("GOOGLE_API_KEY");
+      if (!apiKey) {
+        throw new Error("GOOGLE_API_KEYが設定されていません");
+      }
+      const client = new GeminiClient(apiKey);
       const imageData = await readImageFile(imagePath);
 
       let context: string | undefined;

@@ -39,7 +39,7 @@ describe("catalog.ts", () => {
         assertEquals(result, content);
       } finally {
         await Deno.remove(testFile);
-        await Deno.remove(testDir);
+        await Deno.remove(testDir, { recursive: true });
       }
     });
 
