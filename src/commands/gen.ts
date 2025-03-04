@@ -135,7 +135,7 @@ export class GenCommand extends Command {
         if (!outputPath) {
           const fileName = await geminiClient.generateFileName(theme, {
             maxLength: 40,
-            includeRandomNumber: true,
+            includeRandomNumber: false,
           });
           outputPath = `${fileName}.${options.format}`;
         } else {
@@ -144,7 +144,7 @@ export class GenCommand extends Command {
             if (stat.isDirectory) {
               const fileName = await geminiClient.generateFileName(theme, {
                 maxLength: 40,
-                includeRandomNumber: true,
+                includeRandomNumber: false,
               });
               outputPath = `${outputPath}/${fileName}.${options.format}`;
             }
@@ -153,7 +153,7 @@ export class GenCommand extends Command {
               await Deno.mkdir(outputPath, { recursive: true });
               const fileName = await geminiClient.generateFileName(theme, {
                 maxLength: 40,
-                includeRandomNumber: true,
+                includeRandomNumber: false,
               });
               outputPath = `${outputPath}/${fileName}.${options.format}`;
             } else {
@@ -162,8 +162,29 @@ export class GenCommand extends Command {
           }
         }
 
-        await Deno.writeFile(outputPath, imageData);
-        console.log(`画像を保存しました: ${outputPath}`);
+        // ファイルが存在する場合、乱数を追加して再試行
+        let finalOutputPath = outputPath;
+        let counter = 1;
+        while (true) {
+          try {
+            await Deno.stat(finalOutputPath);
+            // ファイルが存在する場合、乱数を追加
+            const baseName = finalOutputPath.slice(0, finalOutputPath.lastIndexOf("."));
+            const ext = finalOutputPath.slice(finalOutputPath.lastIndexOf("."));
+            const randomNum = Math.floor(Math.random() * 10000).toString().padStart(4, "0");
+            finalOutputPath = `${baseName}-${randomNum}${ext}`;
+            counter++;
+          } catch (error) {
+            if (error instanceof Deno.errors.NotFound) {
+              // ファイルが存在しない場合、このパスを使用
+              break;
+            }
+            throw error;
+          }
+        }
+
+        await Deno.writeFile(finalOutputPath, imageData);
+        console.log(`画像を保存しました: ${finalOutputPath}`);
       });
   }
 }
