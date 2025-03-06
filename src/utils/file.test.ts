@@ -1,21 +1,23 @@
 import { assertEquals, assertRejects } from "@std/assert";
-import { ensureDir, exists } from "@std/fs";
+import { exists } from "@std/fs";
 import { join } from "@std/path";
 import { afterEach, beforeEach, describe, it } from "@std/testing/bdd";
 import { generateUniqueFilePath, saveFileWithUniqueNameIfExists } from "./file.ts";
 
-const TEST_DIR = "./test_tmp/file_test";
-
 describe("ファイル操作ユーティリティのテスト", () => {
-  // 各テスト前にテストディレクトリを作成
+  // テスト用の一時ディレクトリのパス
+  let tempDirPath: string;
+
+  // 各テスト前に一時ディレクトリを作成
   beforeEach(async () => {
-    await ensureDir(TEST_DIR);
+    tempDirPath = await Deno.makeTempDir({ prefix: "imark_test_file_" });
+    console.log("Temp dir path:", tempDirPath);
   });
 
   // 各テスト後にテストファイルを削除
   afterEach(async () => {
     try {
-      await Deno.remove(TEST_DIR, { recursive: true });
+      await Deno.remove(tempDirPath, { recursive: true });
     } catch (error) {
       // ディレクトリが存在しない場合は無視
       if (!(error instanceof Deno.errors.NotFound)) {
@@ -26,13 +28,13 @@ describe("ファイル操作ユーティリティのテスト", () => {
 
   describe("generateUniqueFilePath", () => {
     it("ファイルが存在しない場合は元のパスを返す", async () => {
-      const testPath = join(TEST_DIR, "test.txt");
+      const testPath = join(tempDirPath, "test.txt");
       const result = await generateUniqueFilePath(testPath);
       assertEquals(result, testPath);
     });
 
     it("ファイルが存在する場合は乱数を追加したパスを返す", async () => {
-      const testPath = join(TEST_DIR, "test.txt");
+      const testPath = join(tempDirPath, "test.txt");
 
       // テストファイルを作成
       await Deno.writeTextFile(testPath, "テスト");
@@ -52,7 +54,7 @@ describe("ファイル操作ユーティリティのテスト", () => {
     });
 
     it("最大試行回数を超えた場合はエラーをスロー", async () => {
-      const testPath = join(TEST_DIR, "test.txt");
+      const testPath = join(tempDirPath, "test.txt");
 
       // テストファイルを作成
       await Deno.writeTextFile(testPath, "テスト");
@@ -96,7 +98,7 @@ describe("ファイル操作ユーティリティのテスト", () => {
 
   describe("saveFileWithUniqueNameIfExists", () => {
     it("ファイルが存在しない場合は指定されたパスに保存", async () => {
-      const testPath = join(TEST_DIR, "save_test.txt");
+      const testPath = join(tempDirPath, "save_test.txt");
       const testData = new TextEncoder().encode("テストデータ");
 
       const savedPath = await saveFileWithUniqueNameIfExists(testPath, testData);
@@ -113,7 +115,7 @@ describe("ファイル操作ユーティリティのテスト", () => {
     });
 
     it("ファイルが存在する場合は一意の名前で保存", async () => {
-      const testPath = join(TEST_DIR, "save_test.txt");
+      const testPath = join(tempDirPath, "save_test.txt");
       const testData1 = new TextEncoder().encode("テストデータ1");
       const testData2 = new TextEncoder().encode("テストデータ2");
 
@@ -138,7 +140,7 @@ describe("ファイル操作ユーティリティのテスト", () => {
     });
 
     it("ディレクトリが存在しない場合はエラーをスロー", async () => {
-      const testPath = join(TEST_DIR, "non_existent_dir", "test.txt");
+      const testPath = join(tempDirPath, "non_existent_dir", "test.txt");
       const testData = new TextEncoder().encode("テストデータ");
 
       await assertRejects(

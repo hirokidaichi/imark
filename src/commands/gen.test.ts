@@ -9,6 +9,10 @@ Deno.test("GenCommand", async (t) => {
   // テストで生成された画像ファイルのパスを保持する配列
   const generatedFiles: string[] = [];
 
+  // テスト用の一時ディレクトリを作成
+  const tempDirPath = await Deno.makeTempDir({ prefix: "imark_test_gen_" });
+  console.log("Temp dir path:", tempDirPath);
+
   try {
     await t.step("基本的な機能", () => {
       const command = new GenCommand();
@@ -41,6 +45,20 @@ Deno.test("GenCommand", async (t) => {
         await Deno.remove(file);
       } catch {
         // ファイルが存在しない場合は無視
+      }
+    }
+
+    // テスト用の一時ディレクトリを削除
+    try {
+      await Deno.remove(tempDirPath, { recursive: true });
+    } catch (error) {
+      // ディレクトリが存在しない場合は無視
+      if (!(error instanceof Deno.errors.NotFound)) {
+        console.error(
+          `一時ディレクトリの削除に失敗しました: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
       }
     }
   }
