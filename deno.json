@@ -11,15 +11,18 @@
   },
   "imports": {
     "@google/generative-ai": "npm:@google/generative-ai@^0.22.0",
+    "@modelcontextprotocol/sdk": "npm:@modelcontextprotocol/sdk@^1.6.1",
     "@std/assert": "jsr:@std/assert@^1.0.11",
     "@std/encoding": "jsr:@std/encoding@^1.0.7",
     "@std/testing": "jsr:@std/testing@^1.0.9",
     "@std/fs": "jsr:@std/fs@^1.0.13",
     "@std/path": "jsr:@std/path@^1.0.8",
     "@cliffy/command": "jsr:@cliffy/command@^1.0.0-rc.7",
+    "@cliffy/prompt": "jsr:@cliffy/prompt@^1.0.0-rc.7",
     "@langchain/core": "npm:@langchain/core@^0.3.40",
     "@langchain/core/": "npm:@langchain/core@0.1.14/",
-    "@langchain/google-genai": "npm:@langchain/google-genai@^0.1.8"
+    "@langchain/google-genai": "npm:@langchain/google-genai@^0.1.8",
+    "zod": "npm:zod@^3.24.2"
   },
   "fmt": {
     "include": [

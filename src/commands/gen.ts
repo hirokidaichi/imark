@@ -1,4 +1,5 @@
 import { Command, EnumType } from "@cliffy/command";
+import { getApiKey } from "../utils/config.ts";
 import { GeminiClient } from "../utils/gemini.ts";
 import { IMAGE_TYPE_PROMPTS, ImageType } from "../utils/image_type.ts";
 import {
@@ -93,11 +94,7 @@ export class GenCommand extends Command {
           return;
         }
 
-        const apiKey = Deno.env.get("GOOGLE_API_KEY");
-        if (!apiKey) {
-          throw new Error("GOOGLE_API_KEY環境変数が設定されていません");
-        }
-
+        const apiKey = await getApiKey();
         const geminiClient = new GeminiClient(apiKey);
         const imagefxClient = new ImageFXClient(apiKey);
 

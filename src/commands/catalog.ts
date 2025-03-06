@@ -1,6 +1,7 @@
 import { Command, EnumType } from "@cliffy/command";
 import { walk } from "@std/fs/walk";
 import { LANGUAGE_DESCRIPTIONS, SupportedLanguage } from "../lang.ts";
+import { getApiKey } from "../utils/config.ts";
 import { GeminiClient } from "../utils/gemini.ts";
 import { readImageFile } from "../utils/image.ts";
 
@@ -36,10 +37,7 @@ async function processImages(
   dirPath: string,
   options: { lang: SupportedLanguage; context?: string },
 ): Promise<ProcessResult[]> {
-  const apiKey = Deno.env.get("GOOGLE_API_KEY");
-  if (!apiKey) {
-    throw new Error("GOOGLE_API_KEYが設定されていません");
-  }
+  const apiKey = await getApiKey();
   const client = new GeminiClient(apiKey);
   const results: ProcessResult[] = [];
 
