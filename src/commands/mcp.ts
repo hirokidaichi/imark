@@ -5,6 +5,7 @@ import { join } from "@std/path";
 import { z } from "zod";
 import { SupportedLanguage } from "../lang.ts";
 import { getApiKey } from "../utils/config.ts";
+import { saveFileWithUniqueNameIfExists } from "../utils/file.ts";
 import { GeminiClient } from "../utils/gemini.ts";
 import { readImageFile } from "../utils/image.ts";
 import { ImageType } from "../utils/image_type.ts";
@@ -19,7 +20,6 @@ export const mcpCommand = new Command()
     const apiKey = await getApiKey();
     const geminiClient = new GeminiClient(apiKey);
     const imagefxClient = new ImageFXClient(apiKey);
-    console.error("hello", dir);
     // プロセスの作業ディレクトリを変更
     const originalCwd = Deno.cwd();
     try {
@@ -119,27 +119,8 @@ export const mcpCommand = new Command()
 
             const outputPath = join(fullOutputDir, `${fileName}.png`);
 
-            // ファイルが存在する場合、乱数を追加して再試行
-            let finalOutputPath = outputPath;
-            while (true) {
-              try {
-                await Deno.stat(finalOutputPath);
-                // ファイルが存在する場合、乱数を追加
-                const baseName = finalOutputPath.slice(0, finalOutputPath.lastIndexOf("."));
-                const ext = finalOutputPath.slice(finalOutputPath.lastIndexOf("."));
-                const randomNum = Math.floor(Math.random() * 10000).toString().padStart(4, "0");
-                finalOutputPath = `${baseName}-${randomNum}${ext}`;
-              } catch (error) {
-                if (error instanceof Deno.errors.NotFound) {
-                  // ファイルが存在しない場合、このパスを使用
-                  break;
-                }
-                throw error;
-              }
-            }
-
-            // 画像を保存
-            await Deno.writeFile(finalOutputPath, imageData);
+            // 画像を保存（ファイルが存在する場合は一意の名前で保存）
+            const finalOutputPath = await saveFileWithUniqueNameIfExists(outputPath, imageData);
 
             return {
               content: [{ type: "text", text: finalOutputPath }],
