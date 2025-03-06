@@ -2,7 +2,7 @@ import { join } from "@std/path";
 import { ImageType } from "./image_type.ts";
 
 export type AspectRatio = "16:9" | "4:3" | "1:1" | "9:16" | "3:4";
-export type SizePreset = "hd" | "fullhd" | "2k" | "4k";
+export type SizePreset = "tiny" | "hd" | "fullhd" | "2k" | "4k";
 
 export interface ImageFXOptions {
   size?: SizePreset;
@@ -13,6 +13,7 @@ export interface ImageFXOptions {
 }
 
 export const SIZE_PRESETS: Record<SizePreset, { width: number; height: number }> = {
+  tiny: { width: 160, height: 90 },
   hd: { width: 1280, height: 720 },
   fullhd: { width: 1920, height: 1080 },
   "2k": { width: 2560, height: 1440 },
