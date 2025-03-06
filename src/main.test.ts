@@ -14,7 +14,7 @@ Deno.test("mainCommand", async (t) => {
       assertSpyCalls(consoleLogSpy, 1);
       assertEquals(
         consoleLogSpy.calls[0].args[0],
-        "サブコマンドを指定してください: caption, catalog, configure, gen, mcp",
+        "サブコマンドを指定してください: caption, catalog, configure, gen, log, mcp",
       );
       assertSpyCalls(exitStub, 1);
       assertEquals(exitStub.calls[0].args[0], 1);
@@ -50,6 +50,7 @@ Deno.test("mainCommand", async (t) => {
       assertEquals(helpText.includes("gen"), true);
       assertEquals(helpText.includes("configure"), true);
       assertEquals(helpText.includes("mcp"), true);
+      assertEquals(helpText.includes("log"), true);
     } finally {
       consoleLogSpy.restore();
       exitStub.restore();

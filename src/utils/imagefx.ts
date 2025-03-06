@@ -1,5 +1,5 @@
-import { join } from "@std/path";
 import { ImageType } from "./image_type.ts";
+import { LogDestination, Logger } from "./logger.ts";
 
 export type AspectRatio = "16:9" | "4:3" | "1:1" | "9:16" | "3:4";
 export type SizePreset = "tiny" | "hd" | "fullhd" | "2k" | "4k";
@@ -60,6 +60,7 @@ export const DEFAULT_OPTIONS: ImageFXOptions = {
 export class ImageFXClient {
   private apiKey: string;
   private baseUrl: string;
+  private logger: Logger;
 
   constructor(apiKey: string) {
     if (!apiKey) {
@@ -68,6 +69,10 @@ export class ImageFXClient {
     this.apiKey = apiKey;
     this.baseUrl =
       "https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict";
+    this.logger = Logger.getInstance({
+      name: "imagefx",
+      destination: LogDestination.CONSOLE,
+    });
   }
 
   private calculateDimensions(
@@ -99,13 +104,24 @@ export class ImageFXClient {
     prompt: string,
     options: ImageFXOptions = DEFAULT_OPTIONS,
   ): Promise<Uint8Array> {
-    const size = options.size || DEFAULT_OPTIONS.size!;
-    const aspectRatio = options.aspectRatio || DEFAULT_OPTIONS.aspectRatio!;
-    const format = options.format || DEFAULT_OPTIONS.format!;
-    const _quality = options.quality || DEFAULT_OPTIONS.quality;
+    if (!this.apiKey) {
+      throw new Error("APIキーが設定されていません");
+    }
+
+    const {
+      size = DEFAULT_OPTIONS.size,
+      aspectRatio = DEFAULT_OPTIONS.aspectRatio,
+      format = DEFAULT_OPTIONS.format,
+    } = options;
 
     const enhancedPrompt = this.enhancePrompt(prompt, options);
-    this.calculateDimensions(size, aspectRatio);
+
+    this.logger.debug("=== ImageFX Debug Info ===");
+    this.logger.debug(`Prompt: ${enhancedPrompt}`);
+    this.logger.debug(`Size: ${size}`);
+    this.logger.debug(`Aspect Ratio: ${aspectRatio}`);
+    this.logger.debug(`Format: ${format}`);
+    this.logger.debug("=========================");
 
     const requestBody = {
       instances: [
@@ -114,57 +130,71 @@ export class ImageFXClient {
         },
       ],
       parameters: {
-        aspectRatio: aspectRatio,
-        outputMimeType: `image/${format}`,
         sampleCount: 1,
+        aspectRatio,
+        outputMimeType: `image/${format}`,
       },
     };
 
-    try {
-      const response = await fetch(`${this.baseUrl}?key=${this.apiKey}`, {
+    this.logger.debug("Request Body: " + JSON.stringify(requestBody, null, 2));
+
+    const response = await fetch(
+      `${this.baseUrl}?key=${this.apiKey}`,
+      {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(requestBody),
-      });
+      },
+    );
 
-      if (!response.ok) {
+    this.logger.debug(`Response Status: ${response.status}`);
+    this.logger.debug(`Response Headers: ${JSON.stringify(response.headers, null, 2)}`);
+
+    if (!response.ok) {
+      this.logger.error("\n=== ImageFX API Error Response ===");
+      this.logger.error(`Status: ${response.status}`);
+      this.logger.error(`Headers: ${JSON.stringify(response.headers, null, 2)}`);
+
+      try {
         const errorData = await response.json();
-        console.error("\n=== ImageFX API Error Response ===");
-        console.error("Status:", response.status);
-        console.error("Headers:", Object.fromEntries(response.headers.entries()));
-        console.error("Error:", errorData);
-        console.error("===============================\n");
-        throw new Error(errorData.error?.message || "画像の生成に失敗しました");
+        this.logger.error(`Error: ${JSON.stringify(errorData, null, 2)}`);
+        this.logger.error("===============================\n");
+        throw new Error(errorData.error?.message || "画像生成に失敗しました");
+      } catch (e) {
+        this.logger.error("Error parsing response: " + String(e));
+        throw new Error(`画像生成に失敗しました (HTTP ${response.status})`);
       }
-
-      const result = await response.json();
-
-      if (!result.predictions?.[0]?.bytesBase64Encoded) {
-        console.error("\n=== Invalid API Response Structure ===");
-        console.error("Response:", result);
-        console.error("===============================\n");
-        throw new Error("生成された画像データが見つかりません");
-      }
-
-      return Uint8Array.from(
-        atob(result.predictions[0].bytesBase64Encoded),
-        (c) => c.charCodeAt(0),
-      );
-    } catch (error) {
-      console.error("ImageFX API error:", error);
-      throw error;
     }
+
+    const data = await response.json();
+
+    this.logger.debug(`Response Structure: ${JSON.stringify(Object.keys(data), null, 2)}`);
+
+    if (!data.predictions || !Array.isArray(data.predictions) || data.predictions.length === 0) {
+      throw new Error("画像生成結果が不正です");
+    }
+
+    this.logger.debug(`Predictions Length: ${data.predictions.length}`);
+    this.logger.debug(
+      `First Prediction Keys: ${JSON.stringify(Object.keys(data.predictions[0]), null, 2)}`,
+    );
+
+    const base64Data = data.predictions[0].bytesBase64Encoded;
+    if (!base64Data) {
+      throw new Error("画像データが含まれていません");
+    }
+
+    return Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
   }
 
   async saveImage(imageData: Uint8Array, outputPath: string): Promise<void> {
     try {
-      const fullPath = join(Deno.cwd(), outputPath);
-      await Deno.writeFile(fullPath, imageData);
-      console.log(`画像を保存しました: ${fullPath}`);
+      await Deno.writeFile(outputPath, imageData);
+      this.logger.info(`画像を保存しました: ${outputPath}`);
     } catch (error) {
-      console.error("ファイル保存エラー:", error);
+      this.logger.error(`ファイル保存エラー: ${error}`);
       throw new Error("画像の保存に失敗しました");
     }
   }

@@ -65,6 +65,11 @@ ${typePrompt}
 6. Include lighting and color descriptions
 7. Specify the mood and emotional tone
 8. Include any specific technical requirements
+9. Avoid any sensitive, inappropriate, or offensive content
+10. Ensure the prompt is suitable for all audiences
+11. Do not include any violent, sexual, or disturbing imagery
+12. Avoid political, religious, or controversial themes
+13. Replace any potentially sensitive expressions with more neutral alternatives
 
 Prompt:
 `;
