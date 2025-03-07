@@ -48,8 +48,12 @@ export const mcpCommand = new Command()
       server.tool(
         "caption",
         {
-          image: z.string(),
-          lang: z.enum(["ja", "en"]).optional(),
+          image: z.string().describe(
+            "キャプションを生成したい画像ファイルのパス（相対パスまたは絶対パス）",
+          ),
+          lang: z.enum(["ja", "en"]).optional().describe(
+            "生成するキャプションの言語（ja: 日本語、en: 英語）",
+          ),
         },
         async ({ image, lang = "ja" }: { image: string; lang?: SupportedLanguage }) => {
           try {
@@ -78,7 +82,7 @@ export const mcpCommand = new Command()
       server.tool(
         "generate",
         {
-          theme: z.string(),
+          theme: z.string().describe("生成したい画像のテーマや内容を表すテキスト"),
           type: z.enum([
             "realistic",
             "illustration",
@@ -92,10 +96,14 @@ export const mcpCommand = new Command()
             "corporate",
             "minimal",
             "pop-art",
-          ]).optional(),
-          size: z.enum(["hd", "fullhd", "2k", "4k"]).optional(),
-          aspectRatio: z.enum(["16:9", "4:3", "1:1", "9:16", "3:4"]).optional(),
-          outputDir: z.string().optional(),
+          ]).optional().describe("生成する画像のスタイルやタイプ"),
+          size: z.enum(["hd", "fullhd", "2k", "4k"]).optional().describe("画像サイズのプリセット"),
+          aspectRatio: z.enum(["16:9", "4:3", "1:1", "9:16", "3:4"]).optional().describe(
+            "画像のアスペクト比",
+          ),
+          outputDir: z.string().optional().describe(
+            "画像を保存するディレクトリ（指定しない場合は現在の作業ディレクトリ）",
+          ),
         },
         async ({
           theme,
