@@ -70,6 +70,17 @@ ${typePrompt}
 11. Do not include any violent, sexual, or disturbing imagery
 12. Avoid political, religious, or controversial themes
 13. Replace any potentially sensitive expressions with more neutral alternatives
+14. Do not include children or minors in any scenarios. Change children to adults or symbolic representations.
+15. Avoid depicting dangerous activities that could cause harm
+16. Do not include explicit violence, blood, or gore
+17. Avoid factually inaccurate information that could cause harm
+18. Do not include harassment, incitement, or discrimination
+19. Avoid sexually explicit material
+20. Replace any references to children with adults or symbolic representations
+21. Transform any potentially harmful scenarios into safe, positive alternatives
+22. Limit the output to approximately 1500 characters
+23. Strictly adhere to Gemini's content policy and guidelines
+24. Do not generate content that could violate Gemini's usage policies
 
 Prompt:
 `;

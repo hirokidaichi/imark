@@ -14,13 +14,10 @@ import { LogDestination, Logger, LogLevel } from "../utils/logger.ts";
 
 export const mcpCommand = new Command()
   .description("MCPサーバーを起動します")
-  .option("--dir <directory:string>", "作業ディレクトリを指定します", {
-    default: Deno.cwd(),
-  })
   .option("--debug", "デバッグモードで実行します", {
     default: false,
   })
-  .action(async ({ dir, debug }) => {
+  .action(async ({ debug }) => {
     // MCPサーバー用のロガーを初期化（ファイルにログを出力）
     const logger = Logger.getInstance({
       name: "mcp",
@@ -28,26 +25,26 @@ export const mcpCommand = new Command()
       minLevel: debug ? LogLevel.DEBUG : LogLevel.INFO,
     });
 
-    logger.info("MCPサーバーを起動します", { dir, debug });
+    const workingDir = Deno.cwd();
+    logger.info("MCPサーバーを起動します", { workingDir, debug });
 
     const apiKey = await getApiKey();
     const geminiClient = new GeminiClient(apiKey);
     const imagefxClient = new ImageFXClient(apiKey);
-    // プロセスの作業ディレクトリを変更
-    const originalCwd = Deno.cwd();
-    try {
-      logger.debug("作業ディレクトリを変更します", { from: originalCwd, to: dir });
 
+    try {
       const server = new McpServer({
         name: "imark",
         version: "0.1.0",
-        workingDirectory: dir,
       });
 
       // キャプション生成ツール
       server.tool(
         "caption",
         {
+          rootdir: z.string().describe(
+            "Working directory path to use as base for relative paths",
+          ),
           image: z.string().describe(
             "Path to the image file for which to generate a caption (relative or absolute path)",
           ),
@@ -55,10 +52,16 @@ export const mcpCommand = new Command()
             "Language for the generated caption (ja: Japanese, en: English)",
           ),
         },
-        async ({ image, lang = "ja" }: { image: string; lang?: SupportedLanguage }) => {
+        async (
+          { rootdir, image, lang = "ja" }: {
+            rootdir: string;
+            image: string;
+            lang?: SupportedLanguage;
+          },
+        ) => {
           try {
-            logger.debug("キャプション生成を開始します", { image, lang });
-            const imageData = await readImageFile(join(dir, image));
+            logger.debug("キャプション生成を開始します", { rootdir, image, lang });
+            const imageData = await readImageFile(join(rootdir, image));
             const caption = await geminiClient.generateCaption(imageData, { lang });
             logger.debug("キャプション生成が完了しました");
             return {
@@ -82,6 +85,9 @@ export const mcpCommand = new Command()
       server.tool(
         "generate",
         {
+          rootdir: z.string().describe(
+            "Working directory path to use as base for relative paths",
+          ),
           theme: z.string().describe("Theme or content description for the image to be generated"),
           type: z.enum([
             "realistic",
@@ -106,12 +112,14 @@ export const mcpCommand = new Command()
           ),
         },
         async ({
+          rootdir,
           theme,
           type = "realistic",
           size = "fullhd",
           aspectRatio = "16:9",
           outputDir = "",
         }: {
+          rootdir: string;
           theme: string;
           type?: ImageType;
           size?: SizePreset;
@@ -139,7 +147,7 @@ export const mcpCommand = new Command()
             logger.debug("ファイル名を生成しました", { fileName });
 
             // 出力ディレクトリの作成（指定がある場合）
-            const fullOutputDir = outputDir ? join(dir, outputDir) : dir;
+            const fullOutputDir = outputDir ? join(rootdir, outputDir) : rootdir;
             try {
               await Deno.mkdir(fullOutputDir, { recursive: true });
             } catch (error) {
@@ -179,9 +187,5 @@ export const mcpCommand = new Command()
         error: error instanceof Error ? error.message : String(error),
       });
       throw error;
-    } finally {
-      // 作業ディレクトリを元に戻す
-      logger.debug("作業ディレクトリを元に戻します", { to: originalCwd });
-      Deno.chdir(originalCwd);
     }
   });

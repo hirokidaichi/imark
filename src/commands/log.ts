@@ -1,6 +1,5 @@
 import { Command } from "@cliffy/command";
 import { colors } from "jsr:@cliffy/ansi@^1.0.0-rc.7/colors";
-import { Table } from "jsr:@cliffy/table@^1.0.0-rc.7";
 import { LogDestination, LogEntry, Logger, LogLevel } from "../utils/logger.ts";
 
 export const logCommand = new Command()
@@ -9,7 +8,7 @@ export const logCommand = new Command()
   .option("-l, --level <level:string>", "表示するログレベル (debug, info, warn, error)", {
     default: "info",
   })
-  .option("--mcp", "MCPサーバーのログのみを表示", { default: false })
+  .option("--mcp", "MCPサーバーのログのみを表示", { default: true })
   .action(async ({ lines, level, mcp }) => {
     const logLevel = parseLogLevel(level);
     const logger = Logger.getInstance({
@@ -49,10 +48,6 @@ function parseLogLevel(level: string): LogLevel {
 }
 
 function displayLogs(entries: LogEntry[]): void {
-  const table = new Table()
-    .header(["時刻", "レベル", "メッセージ"])
-    .border(true);
-
   for (const entry of entries) {
     const timestamp = entry.timestamp.replace("T", " ").replace(/\.\d+Z$/, "");
 
@@ -74,12 +69,9 @@ function displayLogs(entries: LogEntry[]): void {
         levelColor = colors.white;
     }
 
-    table.push([
-      timestamp,
-      levelColor(entry.level),
-      entry.message + (entry.data ? ` ${JSON.stringify(entry.data)}` : ""),
-    ]);
-  }
+    const levelText = levelColor(entry.level);
+    const dataText = entry.data ? ` ${JSON.stringify(entry.data)}` : "";
 
-  table.render();
+    console.log(`[${timestamp}] ${levelText} ${entry.message}${dataText}`);
+  }
 }

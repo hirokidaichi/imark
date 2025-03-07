@@ -4,9 +4,7 @@
       "type": "command",
       "command": "imark",
       "args": [
-        "mcp",
-        "--dir",
-        "/Users/hirokidaichi/ghq/github.com/hirokidaichi/imark"
+        "mcp"
       ],
       "disabled": false
     },

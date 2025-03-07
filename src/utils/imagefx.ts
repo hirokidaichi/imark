@@ -3,6 +3,11 @@ import { LogDestination, Logger } from "./logger.ts";
 
 export type AspectRatio = "16:9" | "4:3" | "1:1" | "9:16" | "3:4";
 export type SizePreset = "tiny" | "hd" | "fullhd" | "2k" | "4k";
+export type SafetyFilterLevel =
+  | "BLOCK_LOW_AND_ABOVE"
+  | "BLOCK_MEDIUM_AND_ABOVE"
+  | "BLOCK_ONLY_HIGH";
+export type PersonGeneration = "DONT_ALLOW" | "ALLOW_ADULT";
 
 export interface ImageFXOptions {
   size?: SizePreset;
@@ -10,6 +15,9 @@ export interface ImageFXOptions {
   format?: "png" | "jpg" | "jpeg" | "webp";
   quality?: number;
   type?: ImageType;
+  numberOfImages?: number;
+  safetyFilterLevel?: SafetyFilterLevel;
+  personGeneration?: PersonGeneration;
 }
 
 export const SIZE_PRESETS: Record<SizePreset, { width: number; height: number }> = {
@@ -52,9 +60,12 @@ export const IMAGE_TYPE_PROMPTS: Record<ImageType, string> = {
 export const DEFAULT_OPTIONS: ImageFXOptions = {
   size: "fullhd",
   aspectRatio: "16:9",
-  format: "png",
+  format: "webp",
   quality: 90,
   type: "flat",
+  numberOfImages: 1,
+  safetyFilterLevel: "BLOCK_ONLY_HIGH",
+  personGeneration: "ALLOW_ADULT",
 };
 
 export class ImageFXClient {
@@ -112,6 +123,9 @@ export class ImageFXClient {
       size = DEFAULT_OPTIONS.size,
       aspectRatio = DEFAULT_OPTIONS.aspectRatio,
       format = DEFAULT_OPTIONS.format,
+      numberOfImages = DEFAULT_OPTIONS.numberOfImages,
+      safetyFilterLevel = DEFAULT_OPTIONS.safetyFilterLevel,
+      personGeneration = DEFAULT_OPTIONS.personGeneration,
     } = options;
 
     const enhancedPrompt = this.enhancePrompt(prompt, options);
@@ -121,6 +135,9 @@ export class ImageFXClient {
     this.logger.debug(`Size: ${size}`);
     this.logger.debug(`Aspect Ratio: ${aspectRatio}`);
     this.logger.debug(`Format: ${format}`);
+    this.logger.debug(`Number of Images: ${numberOfImages}`);
+    this.logger.debug(`Safety Filter Level: ${safetyFilterLevel}`);
+    this.logger.debug(`Person Generation: ${personGeneration}`);
     this.logger.debug("=========================");
 
     const requestBody = {
@@ -130,9 +147,13 @@ export class ImageFXClient {
         },
       ],
       parameters: {
-        sampleCount: 1,
+        sampleCount: numberOfImages,
         aspectRatio,
         outputMimeType: `image/${format}`,
+        safetySettings: {
+          filterLevel: safetyFilterLevel,
+        },
+        personMode: personGeneration,
       },
     };
 
