@@ -1,5 +1,5 @@
 import { Command, EnumType } from "@cliffy/command";
-import { walk } from "@std/fs/walk";
+import { walk } from "@std/fs";
 import { dirname, relative } from "@std/path";
 import { LANGUAGE_DESCRIPTIONS, SupportedLanguage } from "../lang.ts";
 import { getApiKey } from "../utils/config.ts";
@@ -19,7 +19,9 @@ export interface ProcessResult {
   caption: string;
 }
 
-export async function loadContext(contextPath?: string): Promise<string | undefined> {
+export async function loadContext(
+  contextPath?: string,
+): Promise<string | undefined> {
   if (!contextPath) return undefined;
 
   if (contextPath.endsWith(".md")) {
@@ -27,7 +29,9 @@ export async function loadContext(contextPath?: string): Promise<string | undefi
       return await Deno.readTextFile(contextPath);
     } catch (error: unknown) {
       if (error instanceof Error) {
-        throw new Error(`Markdownファイルの読み込みに失敗しました: ${error.message}`);
+        throw new Error(
+          `Markdownファイルの読み込みに失敗しました: ${error.message}`,
+        );
       }
       throw new Error("Markdownファイルの読み込みに失敗しました");
     }
@@ -61,8 +65,8 @@ async function processImages(
           await logger.info("画像を処理しました", { path: entry.path });
           return { file: entry.path, caption };
         } catch (error: unknown) {
-          await logger.error(`${entry.path}の処理に失敗しました`, { 
-            error: error instanceof Error ? error.message : String(error) 
+          await logger.error(`${entry.path}の処理に失敗しました`, {
+            error: error instanceof Error ? error.message : String(error),
           });
           return null;
         }
@@ -74,7 +78,10 @@ async function processImages(
   return results.filter((result): result is ProcessResult => result !== null);
 }
 
-export function formatMarkdownEntry(result: ProcessResult, outputPath?: string): string {
+export function formatMarkdownEntry(
+  result: ProcessResult,
+  outputPath?: string,
+): string {
   const imagePath = outputPath ? relative(dirname(outputPath), result.file) : result.file;
   return `---\n\n# ${result.file}\n\n${result.caption}\n![](${imagePath})\n\n`;
 }
@@ -98,20 +105,35 @@ export async function outputResults(
 
 const formatType = new EnumType(["markdown", "json"]);
 
+interface CommandOptions {
+  lang?: string;
+  format?: "markdown" | "json";
+  context?: string;
+  output?: string;
+}
+
 export const catalogCommand = new Command()
   .description("ディレクトリ内の画像を一括でキャプション生成")
   .type("format", formatType)
   .arguments("<dir:string>")
   .option(
     "-l, --lang <lang:string>",
-    `出力言語 (${Object.entries(LANGUAGE_DESCRIPTIONS).map(([k, v]) => `${k}: ${v}`).join(", ")})`,
+    `出力言語 (${
+      Object.entries(LANGUAGE_DESCRIPTIONS).map(([k, v]) => `${k}: ${v}`).join(
+        ", ",
+      )
+    })`,
     {
       default: "ja",
     },
   )
-  .option("-f, --format <format:format>", "出力フォーマット (markdown または json)", {
-    default: "markdown",
-  })
+  .option(
+    "-f, --format <format:format>",
+    "出力フォーマット (markdown または json)",
+    {
+      default: "markdown",
+    },
+  )
   .option(
     "-c, --context <context:string>",
     "コンテキスト情報（.mdファイルパスまたはテキスト）",
@@ -120,7 +142,7 @@ export const catalogCommand = new Command()
     "-o, --output <output:string>",
     "出力ファイルのパス",
   )
-  .action(async (options, dirPath) => {
+  .action(async (options: CommandOptions, dirPath: string) => {
     const logger = Logger.getInstance({
       name: "catalog",
       destination: LogDestination.BOTH,
@@ -129,7 +151,7 @@ export const catalogCommand = new Command()
 
     try {
       const typedOptions: CatalogOptions = {
-        lang: options.lang || "ja",
+        lang: options.lang as SupportedLanguage,
         format: options.format === "json" ? "json" : "markdown",
         context: options.context,
         output: options.output,

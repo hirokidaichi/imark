@@ -80,7 +80,7 @@ describe("ImageFXClient", () => {
     const apiKey = Deno.env.get("GOOGLE_API_KEY");
     if (!apiKey) {
       console.log("GOOGLE_API_KEY環境変数が設定されていないため、テストをスキップします");
-      
+
       // APIキーがない場合は単一のテストにまとめて、空のスキップメッセージを表示
       it("画像生成テスト - APIキーなしでスキップ", () => {
         // コンソールに出力済みなのでここでは何もしない
