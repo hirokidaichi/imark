@@ -1,16 +1,12 @@
 import { Command } from "@cliffy/command";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { join } from "jsr:@std/path@^1.0.0";
-import { z } from "zod";
-import { SupportedLanguage } from "../lang.ts";
 import { getApiKey } from "../utils/config.ts";
-import { saveFileWithUniqueNameIfExists } from "../utils/file.ts";
 import { GeminiClient } from "../utils/gemini.ts";
-import { readImageFile } from "../utils/image.ts";
-import { ImageType } from "../utils/image_type.ts";
-import { AspectRatio, ImageFXClient, SizePreset } from "../utils/imagefx.ts";
+import { ImageFXClient } from "../utils/imagefx.ts";
 import { LogDestination, Logger, LogLevel } from "../utils/logger.ts";
+import { captionTool } from "./mcp/tool/caption.ts";
+import { generateTool } from "./mcp/tool/generate.ts";
 
 export const mcpCommand = new Command()
   .description("MCPサーバーを起動します")
@@ -18,172 +14,70 @@ export const mcpCommand = new Command()
     default: false,
   })
   .action(async ({ debug }) => {
-    // MCPサーバー用のロガーを初期化（ファイルにログを出力）
-    const logger = Logger.getInstance({
-      name: "mcp",
+    // グローバルなロガー設定を初期化
+    Logger.setGlobalConfig({
       destination: LogDestination.FILE,
       minLevel: debug ? LogLevel.DEBUG : LogLevel.INFO,
     });
 
+    // 現在のコンテキストを設定
+    Logger.setContext("mcp");
+
     const workingDir = Deno.cwd();
-    logger.info("MCPサーバーを起動します", { workingDir, debug });
+    Logger.info("MCPサーバーを起動します", { workingDir, debug });
 
     const apiKey = await getApiKey();
     const geminiClient = new GeminiClient(apiKey);
     const imagefxClient = new ImageFXClient(apiKey);
 
     try {
+      Logger.debug("MCPサーバーの初期化を開始します", { name: "imark", version: "0.1.0" });
       const server = new McpServer({
         name: "imark",
         version: "0.1.0",
       });
+      Logger.debug("MCPサーバーの初期化が完了しました");
 
-      // キャプション生成ツール
+      // キャプションツールを登録
       server.tool(
-        "caption",
-        {
-          rootdir: z.string().describe(
-            "Working directory path to use as base for relative paths",
-          ),
-          image: z.string().describe(
-            "Path to the image file for which to generate a caption (relative or absolute path)",
-          ),
-          lang: z.enum(["ja", "en"]).optional().describe(
-            "Language for the generated caption (ja: Japanese, en: English)",
-          ),
-        },
-        async (
-          { rootdir, image, lang = "ja" }: {
-            rootdir: string;
-            image: string;
-            lang?: SupportedLanguage;
-          },
-        ) => {
-          try {
-            logger.debug("キャプション生成を開始します", { rootdir, image, lang });
-            const imageData = await readImageFile(join(rootdir, image));
-            const caption = await geminiClient.generateCaption(imageData, { lang });
-            logger.debug("キャプション生成が完了しました");
-            return {
-              content: [{ type: "text", text: caption }],
-            };
-          } catch (error) {
-            if (error instanceof Error) {
-              const errorMessage = `画像読み込みに失敗しました。パス: ${image}`;
-              logger.error(errorMessage, { error: error.message });
-              return {
-                content: [{ type: "text", text: `エラー: ${error.message}` }],
-                isError: true,
-              };
-            }
-            throw error;
-          }
-        },
+        captionTool.name,
+        captionTool.schema,
+        (params) => captionTool.handler(params, { geminiClient }),
       );
 
-      // 画像生成ツール
+      // 画像生成ツールを登録
       server.tool(
-        "generate",
-        {
-          rootdir: z.string().describe(
-            "Working directory path to use as base for relative paths",
-          ),
-          theme: z.string().describe("Theme or content description for the image to be generated"),
-          type: z.enum([
-            "realistic",
-            "illustration",
-            "flat",
-            "anime",
-            "watercolor",
-            "oil-painting",
-            "pixel-art",
-            "sketch",
-            "3d-render",
-            "corporate",
-            "minimal",
-            "pop-art",
-          ]).optional().describe("Style or type of the image to be generated"),
-          size: z.enum(["hd", "fullhd", "2k", "4k"]).optional().describe("Image size preset"),
-          aspectRatio: z.enum(["16:9", "4:3", "1:1", "9:16", "3:4"]).optional().describe(
-            "Aspect ratio of the generated image",
-          ),
-          outputDir: z.string().optional().describe(
-            "Directory to save the image (uses current working directory if not specified)",
-          ),
-        },
-        async ({
-          rootdir,
-          theme,
-          type = "realistic",
-          size = "fullhd",
-          aspectRatio = "16:9",
-          outputDir = "",
-        }: {
-          rootdir: string;
-          theme: string;
-          type?: ImageType;
-          size?: SizePreset;
-          aspectRatio?: AspectRatio;
-          outputDir?: string;
-        }) => {
-          try {
-            logger.debug("画像生成を開始します", { theme, type, size, aspectRatio, outputDir });
-
-            const prompt = await geminiClient.generatePrompt(theme, "", { type });
-            logger.debug("プロンプト生成が完了しました", { prompt });
-
-            const imageData = await imagefxClient.generateImage(prompt, {
-              size,
-              aspectRatio,
-              type,
-            });
-            logger.debug("画像生成が完了しました");
-
-            // ファイル名を生成
-            const fileName = await geminiClient.generateFileName(theme, {
-              maxLength: 40,
-              includeRandomNumber: false,
-            });
-            logger.debug("ファイル名を生成しました", { fileName });
-
-            // 出力ディレクトリの作成（指定がある場合）
-            const fullOutputDir = outputDir ? join(rootdir, outputDir) : rootdir;
-            try {
-              await Deno.mkdir(fullOutputDir, { recursive: true });
-            } catch (error) {
-              if (!(error instanceof Deno.errors.AlreadyExists)) {
-                throw error;
-              }
-            }
-
-            const outputPath = join(fullOutputDir, `${fileName}.png`);
-            logger.debug("出力パスを生成しました", { outputPath });
-
-            // 画像を保存（ファイルが存在する場合は一意の名前で保存）
-            const finalOutputPath = await saveFileWithUniqueNameIfExists(outputPath, imageData);
-            logger.info("画像を保存しました", { path: finalOutputPath });
-
-            return {
-              content: [{ type: "text", text: finalOutputPath }],
-            };
-          } catch (error) {
-            if (error instanceof Error) {
-              logger.error("画像生成に失敗しました", { error: error.message });
-              return {
-                content: [{ type: "text", text: `エラー: ${error.message}` }],
-                isError: true,
-              };
-            }
-            throw error;
-          }
-        },
+        generateTool.name,
+        generateTool.schema,
+        (params) => generateTool.handler(params, { geminiClient, imagefxClient }),
       );
 
-      logger.info("MCPサーバーの準備が完了しました");
+      Logger.info("MCPサーバーの準備が完了しました");
+      Logger.debug("StdioServerTransportを初期化します");
       const transport = new StdioServerTransport();
-      await server.connect(transport);
+      if (debug) {
+        console.error("[DEBUG] MCPサーバーの接続を開始します");
+      }
+      Logger.debug("MCPサーバーの接続を開始します", { transport: "stdio" });
+      try {
+        await server.connect(transport);
+        if (debug) {
+          console.error("[DEBUG] MCPサーバーの接続が完了しました");
+        }
+        Logger.debug("MCPサーバーの接続が完了しました");
+      } catch (connectError) {
+        if (debug) {
+          console.error("[DEBUG] MCPサーバーの接続に失敗しました:", connectError);
+        }
+        Logger.error("MCPサーバーの接続に失敗しました", {
+          error: connectError instanceof Error ? connectError.message : String(connectError),
+          stack: connectError instanceof Error ? connectError.stack : undefined,
+          transportType: transport.constructor.name,
+        });
+        throw connectError;
+      }
     } catch (error) {
-      logger.error("MCPサーバーでエラーが発生しました", {
+      Logger.error("MCPサーバーでエラーが発生しました", {
         error: error instanceof Error ? error.message : String(error),
       });
       throw error;

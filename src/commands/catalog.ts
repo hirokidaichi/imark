@@ -42,7 +42,6 @@ export async function loadContext(
 async function processImages(
   dirPath: string,
   options: { lang: SupportedLanguage; context?: string },
-  logger: Logger,
 ): Promise<ProcessResult[]> {
   const apiKey = await getApiKey();
   const client = new GeminiClient(apiKey);
@@ -62,10 +61,10 @@ async function processImages(
             lang: options.lang,
             context: options.context,
           });
-          await logger.info("画像を処理しました", { path: entry.path });
+          await Logger.info("画像を処理しました", { path: entry.path });
           return { file: entry.path, caption };
         } catch (error: unknown) {
-          await logger.error(`${entry.path}の処理に失敗しました`, {
+          await Logger.error(`${entry.path}の処理に失敗しました`, {
             error: error instanceof Error ? error.message : String(error),
           });
           return null;
@@ -89,7 +88,6 @@ export function formatMarkdownEntry(
 export async function outputResults(
   results: ProcessResult[],
   options: { format: "markdown" | "json"; output?: string },
-  logger: Logger,
 ): Promise<void> {
   const content = options.format === "json"
     ? JSON.stringify(results, null, 2)
@@ -97,7 +95,7 @@ export async function outputResults(
 
   if (options.output) {
     await Deno.writeTextFile(options.output, content);
-    await logger.info("ファイルを生成しました", { path: options.output });
+    await Logger.info("ファイルを生成しました", { path: options.output });
   } else {
     console.log(content);
   }
@@ -143,11 +141,12 @@ export const catalogCommand = new Command()
     "出力ファイルのパス",
   )
   .action(async (options: CommandOptions, dirPath: string) => {
-    const logger = Logger.getInstance({
-      name: "catalog",
+    // グローバルなロガー設定を初期化
+    Logger.setGlobalConfig({
       destination: LogDestination.BOTH,
       minLevel: LogLevel.INFO,
     });
+    Logger.setContext("catalog");
 
     try {
       const typedOptions: CatalogOptions = {
@@ -160,16 +159,16 @@ export const catalogCommand = new Command()
       const results = await processImages(dirPath, {
         lang: typedOptions.lang,
         context,
-      }, logger);
+      });
       await outputResults(results, {
         format: typedOptions.format,
         output: typedOptions.output,
-      }, logger);
+      });
     } catch (error: unknown) {
       if (error instanceof Error) {
-        await logger.error("エラーが発生しました", { error });
+        await Logger.error("エラーが発生しました", { error });
       } else {
-        await logger.error("不明なエラーが発生しました");
+        await Logger.error("不明なエラーが発生しました");
       }
       Deno.exit(1);
     }

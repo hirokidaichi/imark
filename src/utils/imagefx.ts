@@ -82,7 +82,9 @@ export class ImageFXClient {
       "https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict";
     this.logger = Logger.getInstance({
       name: "imagefx",
-      destination: LogDestination.CONSOLE,
+      config: {
+        destination: LogDestination.CONSOLE,
+      },
     });
   }
 

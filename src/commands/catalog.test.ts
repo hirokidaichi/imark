@@ -1,16 +1,24 @@
 import { assertEquals, assertRejects } from "@std/assert";
 import { join } from "@std/path";
-import { beforeEach, describe, it } from "@std/testing/bdd";
-import { ProcessResult } from "./catalog.ts";
+import { afterEach, beforeEach, describe, it } from "@std/testing/bdd";
 import { LogDestination, Logger, LogLevel } from "../utils/logger.ts";
+import { ProcessResult } from "./catalog.ts";
 
 describe("catalog.ts", () => {
-  // テスト用ロガーの作成
-  const mockLogger = Logger.getInstance({
-    name: "test-catalog",
-    destination: LogDestination.CONSOLE,
-    minLevel: LogLevel.INFO,
+  beforeEach(() => {
+    // テスト前にグローバル設定とインスタンスをリセット
+    Logger.setGlobalConfig({
+      destination: LogDestination.CONSOLE,
+      minLevel: LogLevel.INFO,
+    });
+    Logger.setContext("test-catalog");
   });
+
+  afterEach(() => {
+    // @ts-ignore: private static field access for testing
+    Logger.instances.clear();
+  });
+
   describe("loadContext", () => {
     const testDir = "test_tmp";
     const testFile = join(testDir, "test.md");
@@ -84,7 +92,10 @@ describe("catalog.ts", () => {
     ];
 
     it("should output JSON format correctly", async () => {
-      const { outputResults } = await import("./catalog.ts");
+      // We need to clear the import cache to get the latest version
+      // Using a different import approach
+      const catalog = await import(`./catalog.ts#${Date.now()}`);
+      const outputResults = catalog.outputResults;
       const options = { format: "json" as const };
 
       // コンソール出力をキャプチャ
@@ -94,7 +105,8 @@ describe("catalog.ts", () => {
         output = str;
       };
 
-      await outputResults(testResults, options, mockLogger);
+      const logger = Logger.getInstance({ name: "test-catalog" });
+      await outputResults(testResults, options, logger);
       console.log = originalConsoleLog;
 
       const expectedJson = JSON.stringify(testResults, null, 2);
@@ -102,7 +114,9 @@ describe("catalog.ts", () => {
     });
 
     it("should output Markdown format correctly", async () => {
-      const { outputResults } = await import("./catalog.ts");
+      // We need to clear the import cache to get the latest version
+      const catalog = await import(`./catalog.ts#${Date.now()}`);
+      const outputResults = catalog.outputResults;
       const options = { format: "markdown" as const };
 
       // コンソール出力をキャプチャ
@@ -112,7 +126,8 @@ describe("catalog.ts", () => {
         output = str;
       };
 
-      await outputResults(testResults, options, mockLogger);
+      const logger = Logger.getInstance({ name: "test-catalog" });
+      await outputResults(testResults, options, logger);
       console.log = originalConsoleLog;
 
       const expected = testResults.map((result) =>
@@ -122,12 +137,15 @@ describe("catalog.ts", () => {
     });
 
     it("should write to file when output option is provided", async () => {
-      const { outputResults } = await import("./catalog.ts");
+      // We need to clear the import cache to get the latest version
+      const catalog = await import(`./catalog.ts#${Date.now()}`);
+      const outputResults = catalog.outputResults;
       const testFile = "test_output.md";
       const options = { format: "markdown" as const, output: testFile };
 
       try {
-        await outputResults(testResults, options, mockLogger);
+        const logger = Logger.getInstance({ name: "test-catalog" });
+        await outputResults(testResults, options, logger);
         const content = await Deno.readTextFile(testFile);
         const expected = testResults.map((result) =>
           `---\n\n# ${result.file}\n\n${result.caption}\n![](${result.file})\n\n`

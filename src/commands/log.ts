@@ -1,5 +1,5 @@
 import { Command } from "@cliffy/command";
-import { colors } from "jsr:@cliffy/ansi@^1.0.0-rc.7/colors";
+import { colors } from "@cliffy/ansi/colors";
 import { LogDestination, LogEntry, Logger, LogLevel } from "../utils/logger.ts";
 
 export const logCommand = new Command()
@@ -13,7 +13,9 @@ export const logCommand = new Command()
     const logLevel = parseLogLevel(level);
     const logger = Logger.getInstance({
       name: mcp ? "mcp" : "imark",
-      destination: LogDestination.CONSOLE,
+      config: {
+        destination: LogDestination.CONSOLE,
+      },
     });
 
     try {

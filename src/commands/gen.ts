@@ -75,8 +75,10 @@ export class GenCommand extends Command {
     const apiKey = await getApiKey();
     this.logger = Logger.getInstance({
       name: "gen",
-      destination: LogDestination.BOTH,
-      minLevel: LogLevel.INFO,
+      config: {
+        destination: LogDestination.BOTH,
+        minLevel: LogLevel.INFO,
+      },
     });
     this.geminiClient = new GeminiClient(apiKey);
     this.imagefxClient = new ImageFXClient(apiKey);

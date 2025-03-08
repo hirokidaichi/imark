@@ -1,4 +1,4 @@
-import { assertStringIncludes } from "https://deno.land/std@0.224.0/testing/asserts.ts";
+import { assertStringIncludes } from "@std/assert";
 import { GenCommand } from "./gen.ts";
 
 Deno.test("GenCommand", async (t) => {

@@ -1,6 +1,6 @@
-import { format } from "jsr:@std/datetime@^0.225.3";
-import { ensureDir } from "jsr:@std/fs@^1.0.0";
-import { join } from "jsr:@std/path@^1.0.0";
+import { format } from "@std/datetime";
+import { ensureDir } from "@std/fs";
+import { join } from "@std/path";
 
 export enum LogLevel {
   DEBUG = "DEBUG",
@@ -22,52 +22,67 @@ export interface LogEntry {
   data?: unknown;
 }
 
+export interface LoggerConfig {
+  destination: LogDestination;
+  minLevel: LogLevel;
+}
+
 export interface LoggerOptions {
   name: string;
-  destination?: LogDestination;
-  minLevel?: LogLevel;
+  config?: Partial<LoggerConfig>;
 }
 
 export class Logger {
   private static instances: Map<string, Logger> = new Map();
+  private static defaultConfig: LoggerConfig = {
+    destination: LogDestination.CONSOLE,
+    minLevel: LogLevel.INFO,
+  };
+  private static globalConfig: LoggerConfig = { ...Logger.defaultConfig };
+  private static currentContext = "default";
 
   private logDir: string;
   private currentLogFile: string;
   private encoder = new TextEncoder();
-  private destination: LogDestination;
-  private minLevel: LogLevel;
 
-  private constructor(private name: string, options: LoggerOptions) {
+  private constructor(private name: string) {
     const home = Deno.env.get("HOME");
     if (!home) {
       throw new Error("HOME環境変数が設定されていません");
     }
     this.logDir = join(home, ".imark", "logs");
     this.currentLogFile = this.generateLogFileName();
-    this.destination = options.destination || LogDestination.CONSOLE;
-    this.minLevel = options.minLevel || LogLevel.INFO;
+  }
+
+  /**
+   * グローバルなロガーの設定を行います
+   * この設定は新しく作成されるすべてのロガーインスタンスに適用されます
+   */
+  public static setGlobalConfig(config: Partial<LoggerConfig>): void {
+    Logger.globalConfig = {
+      ...Logger.globalConfig,
+      ...config,
+    };
+  }
+
+  /**
+   * 現在のコンテキスト名を設定します
+   * これは静的メソッドでログを記録する際のデフォルトのロガー名として使用されます
+   */
+  public static setContext(name: string): void {
+    Logger.currentContext = name;
   }
 
   /**
    * ロガーのインスタンスを取得します
-   * シングルトンパターンで実装されており、同じ名前のロガーは同じインスタンスを返します
+   * 同じ名前のロガーは同じインスタンスを返します
    */
   public static getInstance(options: LoggerOptions): Logger {
     const { name } = options;
     if (!Logger.instances.has(name)) {
-      Logger.instances.set(name, new Logger(name, options));
+      Logger.instances.set(name, new Logger(name));
     }
-
-    // 既存のインスタンスの設定を更新
-    const instance = Logger.instances.get(name)!;
-    if (options.destination !== undefined) {
-      instance.destination = options.destination;
-    }
-    if (options.minLevel !== undefined) {
-      instance.minLevel = options.minLevel;
-    }
-
-    return instance;
+    return Logger.instances.get(name)!;
   }
 
   private generateLogFileName(): string {
@@ -97,7 +112,7 @@ export class Logger {
       [LogLevel.ERROR]: 3,
     };
 
-    return levelPriority[level] >= levelPriority[this.minLevel];
+    return levelPriority[level] >= levelPriority[Logger.globalConfig.minLevel];
   }
 
   private async writeLog(entry: LogEntry): Promise<void> {
@@ -105,11 +120,11 @@ export class Logger {
       return;
     }
 
-    const logToConsole = this.destination === LogDestination.CONSOLE ||
-      this.destination === LogDestination.BOTH;
+    const logToConsole = Logger.globalConfig.destination === LogDestination.CONSOLE ||
+      Logger.globalConfig.destination === LogDestination.BOTH;
 
-    const logToFile = this.destination === LogDestination.FILE ||
-      this.destination === LogDestination.BOTH;
+    const logToFile = Logger.globalConfig.destination === LogDestination.FILE ||
+      Logger.globalConfig.destination === LogDestination.BOTH;
 
     if (logToConsole) {
       this.writeToConsole(entry);
@@ -165,6 +180,7 @@ export class Logger {
     }
   }
 
+  // インスタンスメソッド
   debug(message: string, data?: unknown): Promise<void> {
     return this.writeLog(this.formatLogEntry(LogLevel.DEBUG, message, data));
   }
@@ -179,6 +195,23 @@ export class Logger {
 
   error(message: string, data?: unknown): Promise<void> {
     return this.writeLog(this.formatLogEntry(LogLevel.ERROR, message, data));
+  }
+
+  // 静的メソッド
+  static debug(message: string, data?: unknown): Promise<void> {
+    return Logger.getInstance({ name: Logger.currentContext }).debug(message, data);
+  }
+
+  static info(message: string, data?: unknown): Promise<void> {
+    return Logger.getInstance({ name: Logger.currentContext }).info(message, data);
+  }
+
+  static warn(message: string, data?: unknown): Promise<void> {
+    return Logger.getInstance({ name: Logger.currentContext }).warn(message, data);
+  }
+
+  static error(message: string, data?: unknown): Promise<void> {
+    return Logger.getInstance({ name: Logger.currentContext }).error(message, data);
   }
 
   /**
