@@ -10,8 +10,10 @@ imarkは、画像ファイルを自動で認識し、整理された目録を作
 
 - 画像ファイルの自動認識と分類
 - AIを活用した画像キャプションの自動生成
+- AIを活用した画像生成機能
 - 複数言語対応（日本語、英語など）
 - 柔軟な出力フォーマット（Markdown、JSON）
+- 操作ログの管理と表示
 
 ## インストール
 
@@ -41,6 +43,15 @@ imark catalog /path/to/images
 
 # 単一画像のキャプションを生成
 imark caption image.jpg
+
+# AIを使用して画像を生成
+imark gen "画像の説明"
+
+# AIを使用して画像を生成（MCP経由）
+imark mcp "画像の説明"
+
+# 操作ログを表示
+imark log
 ```
 
 ### コマンドとオプション
@@ -72,6 +83,46 @@ imark catalog [options] <directory>
   -o, --output <file>    出力ファイル名（指定がない場合は標準出力）
 ```
 
+#### genコマンド
+
+AIを使用して画像を生成します。
+
+```bash
+imark gen [options] <description>
+
+オプション：
+  -s, --size <size>     画像サイズ（hd, fullhd, 2k, 4k）
+  -t, --type <type>     画像スタイル（realistic, illustration, flat, anime, watercolor, oil-painting, pixel-art, sketch, 3d-render, corporate, minimal, pop-art）
+  -r, --ratio <ratio>   アスペクト比（16:9, 4:3, 1:1, 9:16, 3:4）
+  -o, --output <dir>    出力ディレクトリ
+```
+
+#### mcpコマンド
+
+MCP経由でAI画像生成を行います。
+
+```bash
+imark mcp [options] <description>
+
+オプション：
+  -s, --size <size>     画像サイズ（hd, fullhd, 2k, 4k）
+  -t, --type <type>     画像スタイル（realistic, illustration, flat, anime, watercolor, oil-painting, pixel-art, sketch, 3d-render, corporate, minimal, pop-art）
+  -r, --ratio <ratio>   アスペクト比（16:9, 4:3, 1:1, 9:16, 3:4）
+  -o, --output <dir>    出力ディレクトリ
+```
+
+#### logコマンド
+
+操作ログを表示します。
+
+```bash
+imark log [options]
+
+オプション：
+  -n, --number <number> 表示するログの数
+  -f, --format <format> 出力フォーマット（text, json）
+```
+
 対応している画像形式：
 - jpg/jpeg
 - png
@@ -79,19 +130,27 @@ imark catalog [options] <directory>
 - webp
 - heic/heif
 
+## サンプル画像生成例
+
+以下は、`imark gen`コマンドを使用して生成できる様々なスタイルの画像例です：
+
+| スタイル | コマンド | 生成例 |
+|---------|---------|--------|
+| リアリスティック | `imark gen "beautiful mountain landscape with snow peaks" -t realistic -s fullhd --aspect-ratio "16:9"` | ![realistic](samples/beautiful-mountain-landscape-snow-peaks-.webp) |
+| アニメ | `imark gen "cute anime girl with cat ears" -t anime -s fullhd --aspect-ratio "1:1"` | ![anime](samples/cute-anime-girl-with-cat-ears.webp) |
+| フラット | `imark gen "simple modern email icon" -t flat -s fullhd --aspect-ratio "1:1"` | ![flat](samples/simple-modern-email-icon.webp) |
+| 水彩画 | `imark gen "colorful bouquet of spring flowers" -t watercolor -s fullhd --aspect-ratio "1:1"` | ![watercolor](samples/colorful-bouquet-of-spring-flowers.webp) |
+| ピクセルアート | `imark gen "retro style game character" -t pixel-art -s fullhd --aspect-ratio "1:1"` | ![pixel-art](samples/retro-style-game-character.webp) |
+| 3Dレンダリング | `imark gen "futuristic skyscraper with glass and steel" -t 3d-render -s fullhd --aspect-ratio "1:1"` | ![3d-render](samples/futuristic-skyscraper-glass-steel.webp) |
+| コーポレート | `imark gen "professional business team meeting in modern office" -t corporate -s fullhd --aspect-ratio "16:9"` | ![corporate](samples/professional-business-team-meeting-offic.webp) |
+| ミニマル | `imark gen "abstract geometric minimal logo design" -t minimal -s fullhd --aspect-ratio "1:1"` | ![minimal](samples/abstract-geometric-minimal-logo-design.webp) |
+| ポップアート | `imark gen "colorful pop art style portrait of a woman" -t pop-art -s fullhd --aspect-ratio "1:1"` | ![pop-art](samples/colorful-pop-art-portrait-of-a-woman.webp) |
+| スケッチ | `imark gen "pencil sketch portrait of an elderly man" -t sketch -s fullhd --aspect-ratio "1:1"` | ![sketch](samples/pencil-sketch-portrait-of-an-elderly-man.webp) |
+
+各スタイルのオプションを組み合わせることで、様々な用途に合わせた画像を生成できます。
+詳細なオプションについては、`imark gen --help`を参照してください。
+
 ## 開発者向け情報
-
-### 必要要件
-
-- Deno 2.1.x
-
-### 開発環境のセットアップ
-
-```bash
-git clone https://github.com/hirokidaichi/imark.git
-cd imark
-deno task check-all  # lint、format、testをすべて実行
-```
 
 ## ライセンス
 
