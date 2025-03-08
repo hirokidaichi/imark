@@ -150,6 +150,35 @@ imark log [options]
 各スタイルのオプションを組み合わせることで、様々な用途に合わせた画像を生成できます。
 詳細なオプションについては、`imark gen --help`を参照してください。
 
+[サンプル画像の完全なカタログはこちら](samples/catalog.md)をご覧ください。
+
+## キャプション生成サンプル
+
+以下は、`imark caption`コマンドを使用して生成したキャプションの例です：
+
+| 画像 | 日本語キャプション | English Caption |
+|------|------------------|-----------------|
+| ![mountain](samples/beautiful-mountain-landscape-snow-peaks-.webp) | 壮大な山脈と、その麓に広がる野花の群生を捉えた風景。中心には雪に覆われた鋭いピークを持つマッターホルンを思わせる山が聳え、夕日の光が山肌を照らし、前景には黄色と紫色の野花が咲き乱れています。 | A breathtaking landscape photograph showcasing a majestic mountain range at sunset, with a snow-capped peak dominating the center, surrounded by vibrant wildflowers in the foreground creating a stunning composition of natural beauty. |
+
+各画像に対して、日本語と英語の両方でキャプションを生成できます。キャプションは画像の内容を詳細に分析し、視覚的な要素や雰囲気を自然な言葉で表現します。
+
+## キャプションを使用した画像生成
+
+キャプションを使用して新しい画像を生成することもできます。既存の画像のキャプションを元に、異なるスタイルで画像を生成する例を示します：
+
+```bash
+# 既存の画像からキャプションを生成し、それを元に新しい画像を生成する
+imark gen "$(imark caption samples/beautiful-mountain-landscape-snow-peaks-.webp)" --type pixel-art --output samples
+```
+
+### 生成例
+
+| 元画像 | 生成画像（ピクセルアート） |
+|--------|--------------------------|
+| ![original](samples/beautiful-mountain-landscape-snow-peaks-.webp) | ![pixel-art](samples/matterhorn-sunset-swiss-alps-landscape-h.webp) |
+
+このように、キャプションを介して画像の内容を保持しながら、異なる表現スタイルで再生成することができます。
+
 ## 開発者向け情報
 
 ## ライセンス

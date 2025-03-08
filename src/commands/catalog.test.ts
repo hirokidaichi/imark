@@ -2,8 +2,15 @@ import { assertEquals, assertRejects } from "@std/assert";
 import { join } from "@std/path";
 import { beforeEach, describe, it } from "@std/testing/bdd";
 import { ProcessResult } from "./catalog.ts";
+import { LogDestination, Logger, LogLevel } from "../utils/logger.ts";
 
 describe("catalog.ts", () => {
+  // テスト用ロガーの作成
+  const mockLogger = Logger.getInstance({
+    name: "test-catalog",
+    destination: LogDestination.CONSOLE,
+    minLevel: LogLevel.INFO,
+  });
   describe("loadContext", () => {
     const testDir = "test_tmp";
     const testFile = join(testDir, "test.md");
@@ -11,8 +18,11 @@ describe("catalog.ts", () => {
     beforeEach(async () => {
       try {
         await Deno.mkdir(testDir);
-      } catch {
+      } catch (error) {
         // ディレクトリが既に存在する場合は無視
+        if (!(error instanceof Deno.errors.AlreadyExists)) {
+          throw error;
+        }
       }
     });
 
@@ -61,7 +71,7 @@ describe("catalog.ts", () => {
         caption: "テストキャプション",
       };
 
-      const expected = `---\n\n# test.jpg\n\nテストキャプション\n![](./test.jpg)\n\n`;
+      const expected = `---\n\n# test.jpg\n\nテストキャプション\n![](test.jpg)\n\n`;
       const formatted = formatMarkdownEntry(result);
       assertEquals(formatted, expected);
     });
@@ -80,11 +90,11 @@ describe("catalog.ts", () => {
       // コンソール出力をキャプチャ
       const originalConsoleLog = console.log;
       let output = "";
-      console.log = (str: string) => {
+      console.log = (str: string): void => {
         output = str;
       };
 
-      await outputResults(testResults, options);
+      await outputResults(testResults, options, mockLogger);
       console.log = originalConsoleLog;
 
       const expectedJson = JSON.stringify(testResults, null, 2);
@@ -98,15 +108,15 @@ describe("catalog.ts", () => {
       // コンソール出力をキャプチャ
       const originalConsoleLog = console.log;
       let output = "";
-      console.log = (str: string) => {
+      console.log = (str: string): void => {
         output = str;
       };
 
-      await outputResults(testResults, options);
+      await outputResults(testResults, options, mockLogger);
       console.log = originalConsoleLog;
 
       const expected = testResults.map((result) =>
-        `---\n\n# ${result.file}\n\n${result.caption}\n![](./${result.file})\n\n`
+        `---\n\n# ${result.file}\n\n${result.caption}\n![](${result.file})\n\n`
       ).join("");
       assertEquals(output, expected);
     });
@@ -117,10 +127,10 @@ describe("catalog.ts", () => {
       const options = { format: "markdown" as const, output: testFile };
 
       try {
-        await outputResults(testResults, options);
+        await outputResults(testResults, options, mockLogger);
         const content = await Deno.readTextFile(testFile);
         const expected = testResults.map((result) =>
-          `---\n\n# ${result.file}\n\n${result.caption}\n![](./${result.file})\n\n`
+          `---\n\n# ${result.file}\n\n${result.caption}\n![](${result.file})\n\n`
         ).join("");
         assertEquals(content, expected);
       } finally {

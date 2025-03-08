@@ -1,9 +1,11 @@
 import { Command, EnumType } from "@cliffy/command";
 import { walk } from "@std/fs/walk";
+import { dirname, relative } from "@std/path";
 import { LANGUAGE_DESCRIPTIONS, SupportedLanguage } from "../lang.ts";
 import { getApiKey } from "../utils/config.ts";
 import { GeminiClient } from "../utils/gemini.ts";
 import { readImageFile } from "../utils/image.ts";
+import { LogDestination, Logger, LogLevel } from "../utils/logger.ts";
 
 export interface CatalogOptions {
   lang: SupportedLanguage;
@@ -36,10 +38,11 @@ export async function loadContext(contextPath?: string): Promise<string | undefi
 async function processImages(
   dirPath: string,
   options: { lang: SupportedLanguage; context?: string },
+  logger: Logger,
 ): Promise<ProcessResult[]> {
   const apiKey = await getApiKey();
   const client = new GeminiClient(apiKey);
-  const results: ProcessResult[] = [];
+  const processPromises: Promise<ProcessResult | null>[] = [];
 
   for await (
     const entry of walk(dirPath, {
@@ -47,36 +50,47 @@ async function processImages(
       exts: ["jpg", "jpeg", "png", "gif", "webp", "heic", "heif"],
     })
   ) {
-    try {
-      const imageData = await readImageFile(entry.path);
-      const caption = await client.generateCaption(imageData, {
-        lang: options.lang,
-        context: options.context,
-      });
-      results.push({ file: entry.path, caption });
-      console.error(`処理完了: ${entry.path}`);
-    } catch (error) {
-      console.error(`警告: ${entry.path}の処理に失敗しました:`, error);
-    }
+    processPromises.push(
+      (async () => {
+        try {
+          const imageData = await readImageFile(entry.path);
+          const caption = await client.generateCaption(imageData, {
+            lang: options.lang,
+            context: options.context,
+          });
+          await logger.info("画像を処理しました", { path: entry.path });
+          return { file: entry.path, caption };
+        } catch (error: unknown) {
+          await logger.error(`${entry.path}の処理に失敗しました`, { 
+            error: error instanceof Error ? error.message : String(error) 
+          });
+          return null;
+        }
+      })(),
+    );
   }
 
-  return results;
+  const results = await Promise.all(processPromises);
+  return results.filter((result): result is ProcessResult => result !== null);
 }
 
-export function formatMarkdownEntry(result: ProcessResult): string {
-  return `---\n\n# ${result.file}\n\n${result.caption}\n![](./${result.file})\n\n`;
+export function formatMarkdownEntry(result: ProcessResult, outputPath?: string): string {
+  const imagePath = outputPath ? relative(dirname(outputPath), result.file) : result.file;
+  return `---\n\n# ${result.file}\n\n${result.caption}\n![](${imagePath})\n\n`;
 }
 
 export async function outputResults(
   results: ProcessResult[],
   options: { format: "markdown" | "json"; output?: string },
+  logger: Logger,
 ): Promise<void> {
   const content = options.format === "json"
     ? JSON.stringify(results, null, 2)
-    : results.map(formatMarkdownEntry).join("");
+    : results.map((r) => formatMarkdownEntry(r, options.output)).join("");
 
   if (options.output) {
     await Deno.writeTextFile(options.output, content);
+    await logger.info("ファイルを生成しました", { path: options.output });
   } else {
     console.log(content);
   }
@@ -107,22 +121,33 @@ export const catalogCommand = new Command()
     "出力ファイルのパス",
   )
   .action(async (options, dirPath) => {
+    const logger = Logger.getInstance({
+      name: "catalog",
+      destination: LogDestination.BOTH,
+      minLevel: LogLevel.INFO,
+    });
+
     try {
-      const typedOptions = options as CatalogOptions;
+      const typedOptions: CatalogOptions = {
+        lang: options.lang || "ja",
+        format: options.format === "json" ? "json" : "markdown",
+        context: options.context,
+        output: options.output,
+      };
       const context = await loadContext(typedOptions.context);
       const results = await processImages(dirPath, {
         lang: typedOptions.lang,
         context,
-      });
+      }, logger);
       await outputResults(results, {
         format: typedOptions.format,
         output: typedOptions.output,
-      });
+      }, logger);
     } catch (error: unknown) {
       if (error instanceof Error) {
-        console.error("エラー:", error.message);
+        await logger.error("エラーが発生しました", { error });
       } else {
-        console.error("不明なエラーが発生しました");
+        await logger.error("不明なエラーが発生しました");
       }
       Deno.exit(1);
     }

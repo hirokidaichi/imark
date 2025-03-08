@@ -26,7 +26,7 @@ describe("ImageFXClient", () => {
   afterEach(async () => {
     try {
       await Deno.remove(tempDirPath, { recursive: true });
-    } catch (error) {
+    } catch (error: unknown) {
       // ディレクトリが存在しない場合は無視
       if (!(error instanceof Deno.errors.NotFound)) {
         throw error;
@@ -70,7 +70,7 @@ describe("ImageFXClient", () => {
     it("デフォルトオプションの検証", () => {
       assertEquals(DEFAULT_OPTIONS.size, "fullhd");
       assertEquals(DEFAULT_OPTIONS.aspectRatio, "16:9");
-      assertEquals(DEFAULT_OPTIONS.format, "png");
+      assertEquals(DEFAULT_OPTIONS.format, "webp");
       assertEquals(DEFAULT_OPTIONS.quality, 90);
       assertEquals(DEFAULT_OPTIONS.type, "flat");
     });
@@ -80,21 +80,10 @@ describe("ImageFXClient", () => {
     const apiKey = Deno.env.get("GOOGLE_API_KEY");
     if (!apiKey) {
       console.log("GOOGLE_API_KEY環境変数が設定されていないため、テストをスキップします");
-
-      it("デフォルトオプションでの画像生成 - スキップ", () => {
-        // APIキーがない場合はスキップ
-      });
-
-      it("カスタムサイズとアスペクト比での画像生成 - スキップ", () => {
-        // APIキーがない場合はスキップ
-      });
-
-      it("エラーハンドリング - 不正なアスペクト比 - スキップ", () => {
-        // APIキーがない場合はスキップ
-      });
-
-      it("異なる画像タイプでの生成 - スキップ", () => {
-        // APIキーがない場合はスキップ
+      
+      // APIキーがない場合は単一のテストにまとめて、空のスキップメッセージを表示
+      it("画像生成テスト - APIキーなしでスキップ", () => {
+        // コンソールに出力済みなのでここでは何もしない
       });
 
       return;
@@ -211,8 +200,8 @@ describe("ImageFXClient", () => {
         // ファイルの内容が正しいことを確認
         const content = await Deno.readFile(outputPath);
         assertEquals(content, imageData);
-      } catch (error) {
-        console.error(`テスト失敗: ${error instanceof Error ? error.message : String(error)}`);
+      } catch (error: unknown) {
+        // エラーログは削除し、単純に再スローする
         throw error;
       }
     });

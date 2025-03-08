@@ -6,19 +6,32 @@ import { readImageFile } from "../utils/image.ts";
 
 export const captionCommand = new Command()
   .description("指定した画像のキャプションを生成")
-  .arguments("<image:string>")
+  .arguments("<image:file>")
   .option(
     "-l, --lang <lang:string>",
     `出力言語 (${Object.entries(LANGUAGE_DESCRIPTIONS).map(([k, v]) => `${k}: ${v}`).join(", ")})`,
     {
       default: "ja",
+      value: (value: string): SupportedLanguage => {
+        const validLanguages = Object.keys(LANGUAGE_DESCRIPTIONS) as SupportedLanguage[];
+        if (validLanguages.includes(value as SupportedLanguage)) {
+          return value as SupportedLanguage;
+        }
+        return "ja";
+      },
     },
   )
   .option("-f, --format <format:string>", "出力フォーマット (markdown または json)", {
     default: "markdown",
+    value: (value: string): "markdown" | "json" => {
+      if (value === "markdown" || value === "json") {
+        return value;
+      }
+      return "markdown";
+    },
   })
   .option(
-    "-c, --context <context:string>",
+    "-c, --context <context:file>",
     "コンテキスト情報（.mdファイルパスまたはテキスト）",
   )
   .action(async (options, imagePath) => {
@@ -44,7 +57,7 @@ export const captionCommand = new Command()
       }
 
       const caption = await client.generateCaption(imageData, {
-        lang: options.lang as SupportedLanguage,
+        lang: options.lang,
         context,
       });
 
