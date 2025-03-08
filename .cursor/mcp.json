@@ -7,16 +7,6 @@
         "mcp"
       ],
       "disabled": false
-    },
-    "notion": {
-      "type": "command",
-      "command": "env",
-      "args": [
-        "NOTION_API_TOKEN=ntn_xxxxxxxx",
-        "node",
-        "/Users/xxxxxxxx/workspace/akirapapa-mcp-notion-server/notion/build/index.js"
-      ],
-      "disabled": false
     }
   }
 }

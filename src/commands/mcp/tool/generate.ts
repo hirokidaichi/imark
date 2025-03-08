@@ -2,8 +2,7 @@ import { join } from "@std/path";
 import { z } from "zod";
 import { saveFileWithUniqueNameIfExists } from "../../../utils/file.ts";
 import { GeminiClient } from "../../../utils/gemini.ts";
-import { ImageType } from "../../../utils/image_type.ts";
-import { AspectRatio, ImageFXClient, SizePreset } from "../../../utils/imagefx.ts";
+import { AspectRatio, ImageFXClient, ImageType, SizePreset } from "../../../utils/imagefx.ts";
 import { Logger } from "../../../utils/logger.ts";
 
 export const generateTool = {

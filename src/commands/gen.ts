@@ -3,23 +3,20 @@ import { extname } from "@std/path/extname";
 import { getApiKey } from "../utils/config.ts";
 import { saveFileWithUniqueNameIfExists } from "../utils/file.ts";
 import { GeminiClient } from "../utils/gemini.ts";
-import { IMAGE_TYPE_PROMPTS, ImageType } from "../utils/image_type.ts";
 import {
   ASPECT_RATIOS,
   AspectRatio,
   DEFAULT_OPTIONS,
-  ImageFXClient,
+  IMAGE_TYPE_PROMPTS,
+  ImageFormat,
   ImageFXOptions,
+  ImageType,
   SIZE_PRESETS,
   SizePreset,
-} from "../utils/imagefx.ts";
+  VALID_IMAGE_FORMATS,
+} from "../utils/image_constants.ts";
+import { ImageFXClient } from "../utils/imagefx.ts";
 import { LogDestination, Logger, LogLevel } from "../utils/logger.ts";
-
-/**
- * 画像フォーマットの型定義
- * サポートされている画像フォーマットを制限します
- */
-type ImageFormat = "jpg" | "jpeg" | "png" | "webp";
 
 /**
  * 画像生成コマンドのオプション
@@ -45,11 +42,10 @@ interface OutputPathInfo {
 }
 
 // CLIオプションの型定義
-const formatType = new EnumType<ImageFormat>(["jpg", "jpeg", "png", "webp"]);
+const formatType = new EnumType<ImageFormat>(VALID_IMAGE_FORMATS);
 const sizeType = new EnumType(Object.keys(SIZE_PRESETS));
 const aspectRatioType = new EnumType(Object.keys(ASPECT_RATIOS));
 const typeType = new EnumType(Object.keys(IMAGE_TYPE_PROMPTS));
-const validImageFormats = ["jpg", "jpeg", "png", "webp"];
 
 /**
  * 画像生成コマンドクラス
@@ -185,7 +181,7 @@ export class GenCommand extends Command {
    * @param specifiedFormat 指定されたフォーマット
    */
   private validateImageFormat(ext: string, specifiedFormat?: ImageFormat) {
-    if (!validImageFormats.includes(ext)) {
+    if (!VALID_IMAGE_FORMATS.includes(ext as ImageFormat)) {
       throw new Error(`サポートされていない画像フォーマットです: ${ext}`);
     }
     if (specifiedFormat && ext !== specifiedFormat) {

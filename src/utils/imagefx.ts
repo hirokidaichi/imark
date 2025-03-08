@@ -1,76 +1,31 @@
-import { ImageType } from "./image_type.ts";
-import { LogDestination, Logger } from "./logger.ts";
+import {
+  ASPECT_RATIOS,
+  AspectRatio,
+  DEFAULT_OPTIONS,
+  IMAGE_TYPE_PROMPTS,
+  ImageFXOptions,
+  ImageType,
+  PersonGeneration,
+  SafetyFilterLevel,
+  SIZE_PRESETS,
+  SizePreset,
+} from "./image_constants.ts";
+import { Logger } from "./logger.ts";
 
-export type AspectRatio = "16:9" | "4:3" | "1:1" | "9:16" | "3:4";
-export type SizePreset = "tiny" | "hd" | "fullhd" | "2k" | "4k";
-export type SafetyFilterLevel =
-  | "BLOCK_LOW_AND_ABOVE"
-  | "BLOCK_MEDIUM_AND_ABOVE"
-  | "BLOCK_ONLY_HIGH";
-export type PersonGeneration = "DONT_ALLOW" | "ALLOW_ADULT";
-
-export interface ImageFXOptions {
-  size?: SizePreset;
-  aspectRatio?: AspectRatio;
-  format?: "png" | "jpg" | "jpeg" | "webp";
-  quality?: number;
-  type?: ImageType;
-  numberOfImages?: number;
-  safetyFilterLevel?: SafetyFilterLevel;
-  personGeneration?: PersonGeneration;
-}
-
-export const SIZE_PRESETS: Record<SizePreset, { width: number; height: number }> = {
-  tiny: { width: 160, height: 90 },
-  hd: { width: 1280, height: 720 },
-  fullhd: { width: 1920, height: 1080 },
-  "2k": { width: 2560, height: 1440 },
-  "4k": { width: 3840, height: 2160 },
-};
-
-export const ASPECT_RATIOS: Record<AspectRatio, number> = {
-  "16:9": 16 / 9,
-  "4:3": 4 / 3,
-  "1:1": 1,
-  "9:16": 9 / 16,
-  "3:4": 3 / 4,
-};
-
-export const IMAGE_TYPE_PROMPTS: Record<ImageType, string> = {
-  "realistic": "Create a hyper-realistic photograph with exceptional detail and clarity.",
-  "illustration":
-    "Create a hand-drawn illustration with warm, inviting atmosphere and artistic charm.",
-  "flat":
-    "Create a simple, minimal but a little pop illustration with a white background. Use soft pastel colors with gentle saturation, incorporating light blue, mint green and soft pink as accent colors. The style should feature rounded lines and delicate details, creating a friendly and approachable look that's both modern and charming. The illustration should be easily recognizable while maintaining a sweet, cheerful simplicity.",
-  "anime":
-    "Create an image in Japanese anime style with vibrant colors and distinctive eye designs.",
-  "watercolor":
-    "Create a watercolor painting with soft, flowing colors and artistic blending effects.",
-  "oil-painting": "Create an oil painting with rich textures, deep colors, and impasto effects.",
-  "pixel-art": "Create a pixel art image with retro gaming aesthetics and digital precision.",
-  "sketch": "Create a pencil or pen sketch with dynamic line variations and artistic expression.",
-  "3d-render": "Create a 3D rendered image with realistic lighting, materials, and depth.",
-  "corporate":
-    "Create a professional business image with clean, modern aesthetics and corporate appeal.",
-  "minimal":
-    "Create a minimal design with clean lines, essential elements, and refined simplicity.",
-  "pop-art": "Create a pop art image with bold colors, dot patterns, and contemporary style.",
-};
-
-export const DEFAULT_OPTIONS: ImageFXOptions = {
-  size: "fullhd",
-  aspectRatio: "16:9",
-  format: "webp",
-  quality: 90,
-  type: "flat",
-  numberOfImages: 1,
-  safetyFilterLevel: "BLOCK_ONLY_HIGH",
-  personGeneration: "ALLOW_ADULT",
+export { ASPECT_RATIOS, DEFAULT_OPTIONS, IMAGE_TYPE_PROMPTS, SIZE_PRESETS };
+export type {
+  AspectRatio,
+  ImageFXOptions,
+  ImageType,
+  PersonGeneration,
+  SafetyFilterLevel,
+  SizePreset,
 };
 
 export class ImageFXClient {
   private apiKey: string;
-  private baseUrl: string;
+  private baseUrl =
+    "https://us-central1-aiplatform.googleapis.com/v1/projects/hirokidaichi/locations/us-central1/publishers/google/models/imagegeneration:predict";
   private logger: Logger;
 
   constructor(apiKey: string) {
@@ -78,14 +33,11 @@ export class ImageFXClient {
       throw new Error("GOOGLE_API_KEYが設定されていません");
     }
     this.apiKey = apiKey;
-    this.baseUrl =
-      "https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict";
-    this.logger = Logger.getInstance({
-      name: "imagefx",
-      config: {
-        destination: LogDestination.CONSOLE,
-      },
-    });
+    this.logger = Logger.getInstance({ name: "imagefx" });
+  }
+
+  private enhancePrompt(prompt: string, _options: ImageFXOptions = {}): string {
+    return prompt;
   }
 
   private calculateDimensions(
@@ -106,11 +58,6 @@ export class ImageFXClient {
         height: baseSize.height,
       };
     }
-  }
-
-  private enhancePrompt(prompt: string, _options: ImageFXOptions): string {
-    // 画像タイプのプロンプトはGeminiで処理されるため、ここでは何もしない
-    return prompt;
   }
 
   async generateImage(
@@ -176,40 +123,23 @@ export class ImageFXClient {
     this.logger.debug(`Response Headers: ${JSON.stringify(response.headers, null, 2)}`);
 
     if (!response.ok) {
-      this.logger.error("\n=== ImageFX API Error Response ===");
-      this.logger.error(`Status: ${response.status}`);
-      this.logger.error(`Headers: ${JSON.stringify(response.headers, null, 2)}`);
-
-      try {
-        const errorData = await response.json();
-        this.logger.error(`Error: ${JSON.stringify(errorData, null, 2)}`);
-        this.logger.error("===============================\n");
-        throw new Error(errorData.error?.message || "画像生成に失敗しました");
-      } catch (e) {
-        this.logger.error("Error parsing response: " + String(e));
-        throw new Error(`画像生成に失敗しました (HTTP ${response.status})`);
-      }
+      const errorText = await response.text();
+      throw new Error(`画像生成に失敗しました: ${errorText}`);
     }
 
     const data = await response.json();
-
-    this.logger.debug(`Response Structure: ${JSON.stringify(Object.keys(data), null, 2)}`);
-
-    if (!data.predictions || !Array.isArray(data.predictions) || data.predictions.length === 0) {
-      throw new Error("画像生成結果が不正です");
+    if (!data.predictions?.[0]?.bytesBase64Encoded) {
+      throw new Error("画像データが見つかりません");
     }
-
-    this.logger.debug(`Predictions Length: ${data.predictions.length}`);
-    this.logger.debug(
-      `First Prediction Keys: ${JSON.stringify(Object.keys(data.predictions[0]), null, 2)}`,
-    );
 
     const base64Data = data.predictions[0].bytesBase64Encoded;
-    if (!base64Data) {
-      throw new Error("画像データが含まれていません");
+    const binaryString = atob(base64Data);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
     }
 
-    return Uint8Array.from(atob(base64Data), (c) => c.charCodeAt(0));
+    return bytes;
   }
 
   async saveImage(imageData: Uint8Array, outputPath: string): Promise<void> {

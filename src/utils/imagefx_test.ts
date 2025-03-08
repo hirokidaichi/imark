@@ -60,7 +60,7 @@ describe("ImageFXClient", () => {
       await assertRejects(
         () => client.generateImage("test prompt"),
         Error,
-        "画像生成に失敗しました (HTTP 400)",
+        '画像生成に失敗しました: {"error":{"code":400,"message":"API Error","status":"INVALID_ARGUMENT"}}',
       );
     });
 
@@ -131,6 +131,33 @@ describe("ImageFXClient", () => {
         () => client.generateImage("test prompt"),
         Error,
         "Network Error",
+      );
+    });
+
+    it("should handle API errors", async () => {
+      const mockResponse = new Response(
+        JSON.stringify({
+          error: {
+            code: 400,
+            message: "API Error",
+            status: "INVALID_ARGUMENT",
+          },
+        }),
+        {
+          status: 400,
+          headers: {
+            "Content-Type": "application/json",
+          },
+        },
+      );
+
+      globalThis.fetch = () => Promise.resolve(mockResponse);
+
+      const client = new ImageFXClient("test-api-key");
+      await assertRejects(
+        () => client.generateImage("test prompt"),
+        Error,
+        '画像生成に失敗しました: {"error":{"code":400,"message":"API Error","status":"INVALID_ARGUMENT"}}',
       );
     });
 
