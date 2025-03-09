@@ -1,7 +1,7 @@
 import { assertStringIncludes } from "@std/assert";
-import { GenCommand } from "./gen.ts";
+import { genCommand } from "./gen.ts";
 
-Deno.test("GenCommand", async (t) => {
+Deno.test("genCommand", async (t) => {
   // テストの実行前にGOOGLE_API_KEY環境変数をクリア
   const originalApiKey = Deno.env.get("GOOGLE_API_KEY");
   Deno.env.delete("GOOGLE_API_KEY");
@@ -15,8 +15,7 @@ Deno.test("GenCommand", async (t) => {
 
   try {
     await t.step("基本的な機能", () => {
-      const command = new GenCommand();
-      const helpText = command.getHelp();
+      const helpText = genCommand.getHelp();
       assertStringIncludes(helpText, "--context");
       assertStringIncludes(helpText, "--output");
       assertStringIncludes(helpText, "--size");

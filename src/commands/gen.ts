@@ -1,4 +1,4 @@
-import { Command, EnumType } from "@cliffy/command";
+import { Command, EnumType, NumberType } from "@cliffy/command";
 import { extname } from "@std/path/extname";
 import { getApiKey } from "../utils/config.ts";
 import { saveFileWithUniqueNameIfExists } from "../utils/file.ts";
@@ -41,17 +41,43 @@ interface OutputPathInfo {
   format: ImageFormat;
 }
 
+// 画像タイプの説明を定義
+const _IMAGE_TYPE_DESCRIPTIONS: Record<ImageType, string> = {
+  realistic: "写実的な写真のような表現",
+  illustration: "イラストレーション風の表現",
+  flat: "フラットデザイン風の表現",
+  anime: "アニメ風の表現",
+  watercolor: "水彩画風の表現",
+  "oil-painting": "油絵風の表現",
+  "pixel-art": "ピクセルアート風の表現",
+  sketch: "スケッチ風の表現",
+  "3d-render": "3Dレンダリング風の表現",
+  corporate: "企業向けの洗練された表現",
+  minimal: "ミニマルな表現",
+  "pop-art": "ポップアート風の表現",
+};
+
 // CLIオプションの型定義
 const formatType = new EnumType<ImageFormat>(VALID_IMAGE_FORMATS);
 const sizeType = new EnumType(Object.keys(SIZE_PRESETS));
 const aspectRatioType = new EnumType(Object.keys(ASPECT_RATIOS));
 const typeType = new EnumType(Object.keys(IMAGE_TYPE_PROMPTS));
+const qualityType = new NumberType();
 
 /**
  * 画像生成コマンドクラス
  * imark genコマンドの実装を提供します
  */
-export class GenCommand extends Command {
+class GenCommand extends Command<{
+  context?: string;
+  output?: string;
+  size: string;
+  aspectRatio: string;
+  type: ImageType;
+  format: ImageFormat;
+  quality: number;
+  debug: boolean;
+}> {
   private logger!: Logger;
   private geminiClient!: GeminiClient;
   private imagefxClient!: ImageFXClient;
@@ -67,7 +93,7 @@ export class GenCommand extends Command {
    * - Gemini APIクライアントの初期化
    * - ImageFX APIクライアントの初期化
    */
-  private async initialize() {
+  public async initialize() {
     const apiKey = await getApiKey();
     this.logger = Logger.getInstance({
       name: "gen",
@@ -142,6 +168,7 @@ export class GenCommand extends Command {
       .type("size", sizeType)
       .type("aspectRatio", aspectRatioType)
       .type("type", typeType)
+      .type("quality", qualityType)
       .action(async (options, theme: string) => {
         // オプションの型を適切に変換
         const genOptions: GenOptions = {
@@ -248,17 +275,11 @@ export class GenCommand extends Command {
   }
 
   /**
-   * コマンドの主要な処理を実行します
-   * 1. 初期化
-   * 2. コンテキストの読み込み
-   * 3. プロンプトの生成
-   * 4. 画像の生成
-   * 5. 出力パスの解決
-   * 6. 画像の保存
+   * コマンドのアクション処理を実行します
    * @param options コマンドオプション
    * @param theme 画像生成のテーマ
    */
-  private async handleAction(options: GenOptions, theme: string) {
+  public async handleAction(options: GenOptions, theme: string) {
     if (!theme) {
       this.showHelp();
       return;
@@ -304,3 +325,79 @@ export class GenCommand extends Command {
     });
   }
 }
+
+// GenCommandクラスのエクスポートを削除し、代わりにgenCommandインスタンスをエクスポート
+export const genCommand = new Command()
+  .description("画像を生成します")
+  .arguments("<theme:string>")
+  .option("-c, --context <file:string>", "コンテキストファイルのパス")
+  .option("-o, --output <path:string>", "出力パス（ファイルまたはディレクトリ）")
+  .option(
+    "-s, --size <size:size>",
+    `画像サイズプリセット (${Object.keys(SIZE_PRESETS).join(" | ")})`,
+    { default: DEFAULT_OPTIONS.size },
+  )
+  .option(
+    "-a, --aspect-ratio <ratio:aspectRatio>",
+    `アスペクト比 (${Object.keys(ASPECT_RATIOS).join(" | ")})`,
+    { default: DEFAULT_OPTIONS.aspectRatio },
+  )
+  .option(
+    "-t, --type <type:type>",
+    `画像タイプ (${Object.keys(IMAGE_TYPE_PROMPTS).join(" | ")})`,
+    { default: DEFAULT_OPTIONS.type },
+  )
+  .option(
+    "-f, --format <format:format>",
+    "画像のフォーマット (png | jpg | jpeg | webp)",
+    { default: DEFAULT_OPTIONS.format as ImageFormat },
+  )
+  .option(
+    "-q, --quality <number:number>",
+    "画像の品質 (1-100)",
+    { default: DEFAULT_OPTIONS.quality },
+  )
+  .option(
+    "-d, --debug",
+    "デバッグモード（生成されたプロンプトを表示）",
+    { default: false },
+  )
+  .example(
+    "基本的な使い方",
+    "imark gen '水星にすむ生物' --type realistic",
+  )
+  .example(
+    "アニメ風の富士山",
+    "imark gen '富士山の風景' --type anime --aspect-ratio 16:9",
+  )
+  .example(
+    "水彩画風の企業ロゴ",
+    "imark gen '企業ロゴ' --type watercolor --size fullhd",
+  )
+  .example(
+    "デバッグモード",
+    "imark gen '猫の写真' --type realistic --debug",
+  )
+  .type("format", formatType)
+  .type("size", sizeType)
+  .type("aspectRatio", aspectRatioType)
+  .type("type", typeType)
+  .type("quality", qualityType)
+  .action(async (options, theme: string) => {
+    // オプションの型を適切に変換
+    const genOptions: GenOptions = {
+      context: typeof options.context === "string" ? options.context : undefined,
+      output: typeof options.output === "string" ? options.output : undefined,
+      size: String(options.size || DEFAULT_OPTIONS.size),
+      aspectRatio: String(options.aspectRatio || DEFAULT_OPTIONS.aspectRatio),
+      type: String(options.type || DEFAULT_OPTIONS.type),
+      format: (options.format || DEFAULT_OPTIONS.format) as ImageFormat,
+      quality: typeof options.quality === "number" ? options.quality : DEFAULT_OPTIONS.quality,
+      debug: Boolean(options.debug),
+    };
+
+    // GenCommandクラスのインスタンスを作成して処理を委譲
+    const genCommand = new GenCommand();
+    await genCommand.initialize();
+    await genCommand.handleAction(genOptions, theme);
+  });
