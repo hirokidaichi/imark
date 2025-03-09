@@ -25,7 +25,7 @@ export type {
 export class ImageFXClient {
   private apiKey: string;
   private baseUrl =
-    "https://us-central1-aiplatform.googleapis.com/v1/projects/hirokidaichi/locations/us-central1/publishers/google/models/imagegeneration:predict";
+    "https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict";
   private logger: Logger;
 
   constructor(apiKey: string) {
