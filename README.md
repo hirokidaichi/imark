@@ -34,13 +34,8 @@ imarkは、AIの力を使って画像ファイルを自動認識し、整理さ�
 
 以下の2つの方法でインストールできます：
 
-### 1. 直接インストール
 
-```bash
-deno install -A -f --name imark https://raw.githubusercontent.com/hirokidaichi/imark/main/src/main.ts
-```
-
-### 2. ソースコードからのインストール
+### 1. ソースコードからのインストール
 
 ```bash
 git clone https://github.com/hirokidaichi/imark.git
@@ -48,7 +43,16 @@ cd imark
 deno task install
 ```
 
-## 使用方法
+`imark configure`をつかって、API KEYをセットアップする。
+
+```
+imark configure
+環境変数 GOOGLE_API_KEY が設定されています。
+? 環境変数の値を使用しますか？ (y/n) › Yes
+設定を保存しました。
+```
+
+## 使用方法~~`
 
 ### 基本的なコマンド
 
@@ -62,8 +66,8 @@ imark caption image.jpg
 # AIを使用して画像を生成
 imark gen "画像の説明"
 
-# AIを使用して画像を生成（MCP経由）
-imark mcp "画像の説明"
+# AIの画像の読み取りと画像の作成ができるMCP Serverにもなる
+imark mcp 
 
 # 操作ログを表示
 imark log
@@ -114,17 +118,54 @@ imark gen [options] <description>
 
 #### mcpコマンド
 
-MCP経由でAI画像生成を行います。
+Model Context Protocol（MCP）サーバーとして動作し、AIを活用した画像処理機能を提供します。
 
 ```bash
-imark mcp [options] <description>
+imark mcp [options]
 
 オプション：
-  -s, --size <size>     画像サイズ（hd, fullhd, 2k, 4k）
-  -t, --type <type>     画像スタイル（realistic, illustration, flat, anime, watercolor, oil-painting, pixel-art, sketch, 3d-render, corporate, minimal, pop-art）
-  -r, --ratio <ratio>   アスペクト比（16:9, 4:3, 1:1, 9:16, 3:4）
-  -o, --output <dir>    出力ディレクトリ
+  --debug    デバッグモードで実行（詳細なログ出力）
 ```
+
+主な機能：
+- 画像キャプション生成（captionTool）
+- AI画像生成（generateTool）
+
+##### Claude Codeのでの利用
+claudeコマンドで利用する場合は、次のような設定で利用できます。
+```
+claude mcp add imark imark mcp
+```
+
+##### Cursor IDEでの利用
+
+###### **Editor全体の場合**
+コマンドの設定時に次のコマンドを登録してください。
+```
+imark mcp
+```
+
+###### **プロジェクト毎の場合**
+
+`.cursor/mcp.json`の設定により、Cursor上でMCPサーバーとして認識され、AI画像処理機能を直接利用できます：
+
+```json
+{
+  "mcpServers": {
+    "imark": {
+      "type": "command",
+      "command": "imark",
+      "args": ["mcp"],
+      "disabled": false
+    }
+  }
+}
+```
+
+技術的な詳細：
+- Gemini APIとImageFX APIを利用した画像処理
+- StdioServerTransportによるMCPプロトコルの実装
+- デバッグモードによる詳細なログ出力機能
 
 #### logコマンド
 
