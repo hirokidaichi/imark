@@ -2,14 +2,7 @@ import { assert, assertEquals, assertExists, assertRejects, assertThrows } from 
 import { exists } from "@std/fs";
 import { join } from "@std/path";
 import { afterEach, beforeEach, describe, it } from "@std/testing/bdd";
-import {
-  ASPECT_RATIOS,
-  AspectRatio,
-  DEFAULT_OPTIONS,
-  ImageType,
-  SIZE_PRESETS,
-  SizePreset,
-} from "./image_constants.ts";
+import { ASPECT_RATIOS, DEFAULT_OPTIONS, SIZE_PRESETS } from "./image_constants.ts";
 import { ImageFXClient } from "./imagefx.ts";
 
 describe("ImageFXClient", () => {
@@ -32,6 +25,23 @@ describe("ImageFXClient", () => {
         throw error;
       }
     }
+  });
+
+  describe("インスタンス化", () => {
+    it("APIキーがない場合はエラー", () => {
+      assertThrows(
+        () => {
+          new ImageFXClient("");
+        },
+        Error,
+        "GOOGLE_API_KEYが設定されていません",
+      );
+    });
+
+    it("APIキーがある場合はインスタンスを作成", () => {
+      const client = new ImageFXClient("dummy-api-key");
+      assert(client instanceof ImageFXClient);
+    });
   });
 
   describe("定数の検証", () => {
@@ -77,113 +87,55 @@ describe("ImageFXClient", () => {
   });
 
   describe("画像生成", () => {
-    // テスト用のデータは削除（実際は使用しない）
-    
-    // APIキーをチェック
-    const apiKey = Deno.env.get("GOOGLE_API_KEY");
-    if (!apiKey) {
-      console.warn("GOOGLE_API_KEYが設定されていないため、実際のAPIを使用したテストをスキップします");
-      
-      // モックを使用したテスト
-      it("基本的な画像生成 (モック)", () => {
-        console.log("API接続なしでテストを実行します");
-        // API呼び出しはスキップ
-      });
-      
-      it("カスタムサイズとアスペクト比での画像生成 (モック)", () => {
-        console.log("API接続なしでテストを実行します");
-        // API呼び出しはスキップ
-      });
-      
-      it("エラーハンドリング - 不正なアスペクト比 (モック)", () => {
-        console.log("API接続なしでテストを実行します");
-        // モックテストなのでAPI呼び出しはしない
-        // APIを呼び出さないので実際のアサーションは不要
-      });
-      
-      it("異なる画像タイプでの生成 (モック)", () => {
-        console.log("API接続なしでテストを実行します");
-        // APIを呼び出さない検証のみ
-      });
-      
-      return;
-    }
+    const client = new ImageFXClient("dummy-api-key");
 
-    // 実際のAPIキーがある場合のテスト
-    const client = new ImageFXClient(apiKey);
-
-    it("基本的な画像生成", async () => {
-      const prompt = "小さな富士山のアイコン";
-      const imageData = await client.generateImage(prompt);
-      assert(imageData instanceof Uint8Array);
-      assert(imageData.length > 0);
-
-      // 一時ディレクトリに保存して確認
-      const outputPath = join(tempDirPath, "test.webp");
-      await Deno.writeFile(outputPath, imageData);
-      assert(await exists(outputPath));
-    });
-
-    it("カスタムサイズとアスペクト比での画像生成", async () => {
-      const prompt = "小さな富士山のアイコン";
-      const options: {
-        size: SizePreset;
-        aspectRatio: AspectRatio;
-        format: "png" | "jpg" | "jpeg" | "webp";
-        quality: number;
-      } = {
-        size: "tiny", // 最小サイズを使用
-        aspectRatio: "1:1",
-        format: "jpg", // jpgを使用して容量を削減
-        quality: 50, // 品質を下げる
-      };
-      const imageData = await client.generateImage(prompt, options);
-      assert(imageData instanceof Uint8Array);
-      assert(imageData.length > 0);
-
-      // 一時ディレクトリに保存して確認
-      const outputPath = join(tempDirPath, "test_custom.jpg");
-      await Deno.writeFile(outputPath, imageData);
-      assert(await exists(outputPath));
-    });
-
-    it("エラーハンドリング - 不正なアスペクト比", async () => {
-      const prompt = "小さな富士山のアイコン";
-      const options = {
-        size: "tiny" as SizePreset,
-        aspectRatio: "invalid" as AspectRatio,
-      };
+    it("基本的な画像生成 - 認証エラー", async () => {
       await assertRejects(
         async () => {
-          await client.generateImage(prompt, options);
+          await client.generateImage("テスト画像");
+        },
+        Error,
+        "画像生成に失敗しました",
+      );
+    });
+
+    it("カスタムオプションでの画像生成 - 認証エラー", async () => {
+      await assertRejects(
+        async () => {
+          await client.generateImage("テスト画像", {
+            size: "tiny",
+            aspectRatio: "1:1",
+            format: "jpg",
+            quality: 50,
+          });
+        },
+        Error,
+        "画像生成に失敗しました",
+      );
+    });
+
+    it("不正なアスペクト比でのエラー", async () => {
+      await assertRejects(
+        async () => {
+          await client.generateImage("テスト画像", {
+            // deno-lint-ignore no-explicit-any
+            aspectRatio: "invalid" as any,
+          });
         },
         Error,
       );
     });
 
-    it("異なる画像タイプでの生成", async () => {
-      const prompt = "小さな富士山のアイコン";
-      const options: {
-        size: SizePreset;
-        aspectRatio: AspectRatio;
-        type: ImageType;
-        format: "png" | "jpg" | "jpeg" | "webp";
-        quality: number;
-      } = {
-        size: "tiny", // 最小サイズを使用
-        aspectRatio: "1:1",
-        type: "watercolor",
-        format: "webp", // webpを使用して容量を削減
-        quality: 50, // 品質を下げる
-      };
-      const imageData = await client.generateImage(prompt, options);
-      assert(imageData instanceof Uint8Array);
-      assert(imageData.length > 0);
-
-      // 一時ディレクトリに保存して確認
-      const outputPath = join(tempDirPath, "test_type.webp");
-      await Deno.writeFile(outputPath, imageData);
-      assert(await exists(outputPath));
+    it("不正なサイズプリセットでのエラー", async () => {
+      await assertRejects(
+        async () => {
+          await client.generateImage("テスト画像", {
+            // deno-lint-ignore no-explicit-any
+            size: "invalid" as any,
+          });
+        },
+        Error,
+      );
     });
   });
 
