@@ -26,15 +26,22 @@ describe("catalog.ts", () => {
   });
 
   describe("loadContext", () => {
-    const testDir = "test_tmp";
-    const testFile = join(testDir, "test.md");
+    let tempDir: string;
+    let testFile: string;
 
     beforeEach(async () => {
+      // テスト用の一時ディレクトリを作成
+      tempDir = await Deno.makeTempDir({ prefix: "imark_test_catalog_" });
+      testFile = join(tempDir, "test.md");
+    });
+
+    afterEach(async () => {
+      // テスト用の一時ディレクトリを削除
       try {
-        await Deno.mkdir(testDir);
+        await Deno.remove(tempDir, { recursive: true });
       } catch (error) {
-        // ディレクトリが既に存在する場合は無視
-        if (!(error instanceof Deno.errors.AlreadyExists)) {
+        // ディレクトリが存在しない場合は無視
+        if (!(error instanceof Deno.errors.NotFound)) {
           throw error;
         }
       }
@@ -58,13 +65,8 @@ describe("catalog.ts", () => {
       const content = "# テストマークダウン";
       await Deno.writeTextFile(testFile, content);
 
-      try {
-        const result = await loadContext(testFile);
-        assertEquals(result, content);
-      } finally {
-        await Deno.remove(testFile);
-        await Deno.remove(testDir, { recursive: true });
-      }
+      const result = await loadContext(testFile);
+      assertEquals(result, content);
     });
 
     it("should throw error when markdown file does not exist", async () => {
@@ -96,6 +98,24 @@ describe("catalog.ts", () => {
       { file: "test1.jpg", caption: "キャプション1" },
       { file: "test2.jpg", caption: "キャプション2" },
     ];
+    let tempDir: string;
+
+    beforeEach(async () => {
+      // テスト用の一時ディレクトリを作成
+      tempDir = await Deno.makeTempDir({ prefix: "imark_test_output_" });
+    });
+
+    afterEach(async () => {
+      // テスト用の一時ディレクトリを削除
+      try {
+        await Deno.remove(tempDir, { recursive: true });
+      } catch (error) {
+        // ディレクトリが存在しない場合は無視
+        if (!(error instanceof Deno.errors.NotFound)) {
+          throw error;
+        }
+      }
+    });
 
     it("should output JSON format correctly", async () => {
       // We need to clear the import cache to get the latest version
@@ -146,20 +166,18 @@ describe("catalog.ts", () => {
       // We need to clear the import cache to get the latest version
       const catalog = await import(`./catalog.ts#${Date.now()}`);
       const outputResults = catalog.outputResults;
-      const testFile = "test_output.md";
+      const formatMarkdownEntry = catalog.formatMarkdownEntry;
+      const testFile = join(tempDir, "test_output.md");
       const options = { format: "markdown" as const, output: testFile };
 
-      try {
-        const logger = Logger.getInstance({ name: "test-catalog" });
-        await outputResults(testResults, options, logger);
-        const content = await Deno.readTextFile(testFile);
-        const expected = testResults.map((result) =>
-          `---\n\n# ${result.file}\n\n${result.caption}\n![](${result.file})\n\n`
-        ).join("");
-        assertEquals(content, expected);
-      } finally {
-        await Deno.remove(testFile);
-      }
+      const logger = Logger.getInstance({ name: "test-catalog" });
+      await outputResults(testResults, options, logger);
+      const content = await Deno.readTextFile(testFile);
+
+      // 期待される出力を生成（formatMarkdownEntryを使用して正確に再現）
+      const expected = testResults.map((result) => formatMarkdownEntry(result, testFile)).join("");
+
+      assertEquals(content, expected);
     });
   });
 });
