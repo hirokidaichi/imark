@@ -1,6 +1,6 @@
-import { Command, EnumType } from "@cliffy/command";
-import { walk } from "@std/fs";
-import { dirname, relative } from "@std/path";
+import { Command, EnumType } from "../deps.ts";
+import { walk } from "../deps.ts";
+import { dirname, relative } from "../deps.ts";
 import { LANGUAGE_DESCRIPTIONS, SupportedLanguage } from "../lang.ts";
 import { getApiKey } from "../utils/config.ts";
 import { GeminiClient } from "../utils/gemini.ts";

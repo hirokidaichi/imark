@@ -1,5 +1,5 @@
-import { join } from "@std/path";
-import { z } from "zod";
+import { join } from "../../../deps.ts";
+import { z } from "../../../deps.ts";
 import { SupportedLanguage } from "../../../lang.ts";
 import { GeminiClient } from "../../../utils/gemini.ts";
 import { readImageFile } from "../../../utils/image.ts";

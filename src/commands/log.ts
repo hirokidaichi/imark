@@ -1,5 +1,4 @@
-import { Command } from "@cliffy/command";
-import { colors } from "@cliffy/ansi/colors";
+import { colors, Command } from "../deps.ts";
 import { LogDestination, LogEntry, Logger, LogLevel } from "../utils/logger.ts";
 
 export const logCommand = new Command()

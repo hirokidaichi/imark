@@ -1,6 +1,6 @@
-import { format } from "@std/datetime";
-import { ensureDir } from "@std/fs";
-import { join } from "@std/path";
+import { format } from "../deps.ts";
+import { ensureDir } from "../deps.ts";
+import { join } from "../deps.ts";
 
 export enum LogLevel {
   DEBUG = "DEBUG",

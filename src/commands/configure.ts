@@ -1,5 +1,5 @@
-import { Command } from "@cliffy/command";
-import { Confirm, Secret } from "@cliffy/prompt";
+import { Command } from "../deps.ts";
+import { Confirm, Secret } from "../deps.ts";
 import { loadConfig, saveConfig } from "../utils/config.ts";
 
 export const configureCommand = new Command()

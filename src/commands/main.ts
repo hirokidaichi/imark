@@ -1,5 +1,4 @@
-import { Command } from "@cliffy/command";
-import { CompletionsCommand } from "@cliffy/command/completions";
+import { Command, CompletionsCommand } from "../deps.ts";
 import { captionCommand } from "./caption.ts";
 import { catalogCommand } from "./catalog.ts";
 import { configureCommand } from "./configure.ts";

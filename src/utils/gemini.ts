@@ -1,4 +1,4 @@
-import { GenerativeModel, GoogleGenerativeAI } from "@google/generative-ai";
+import { GenerativeModel, GoogleGenerativeAI } from "../deps.ts";
 import { SupportedLanguage } from "../lang.ts";
 import { ImageData } from "./image.ts";
 import { IMAGE_TYPE_PROMPTS, ImageType } from "./image_constants.ts";

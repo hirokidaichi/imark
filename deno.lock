@@ -13,14 +13,11 @@
     "jsr:@std/assert@^1.0.10": "1.0.11",
     "jsr:@std/assert@^1.0.11": "1.0.11",
     "jsr:@std/assert@~1.0.6": "1.0.11",
-    "jsr:@std/async@^1.0.9": "1.0.10",
-    "jsr:@std/data-structures@^1.0.6": "1.0.6",
     "jsr:@std/datetime@~0.225.3": "0.225.3",
     "jsr:@std/encoding@^1.0.7": "1.0.7",
     "jsr:@std/encoding@~1.0.5": "1.0.7",
     "jsr:@std/fmt@~1.0.2": "1.0.6",
     "jsr:@std/fs@^1.0.14": "1.0.14",
-    "jsr:@std/fs@^1.0.9": "1.0.14",
     "jsr:@std/internal@^1.0.5": "1.0.5",
     "jsr:@std/io@~0.224.9": "0.224.9",
     "jsr:@std/path@^1.0.8": "1.0.8",
@@ -29,6 +26,7 @@
     "jsr:@std/text@~1.0.7": "1.0.11",
     "npm:@google/generative-ai@0.22": "0.22.0",
     "npm:@langchain/core@~0.3.40": "0.3.42_zod@3.24.2",
+    "npm:@modelcontextprotocol/sdk@1.6.1": "1.6.1_express@5.0.1_zod@3.24.2",
     "npm:@modelcontextprotocol/sdk@^1.6.1": "1.6.1_express@5.0.1_zod@3.24.2",
     "npm:@types/node@*": "22.12.0",
     "npm:zod@^3.24.2": "3.24.2"
@@ -90,12 +88,6 @@
         "jsr:@std/internal"
       ]
     },
-    "@std/async@1.0.10": {
-      "integrity": "2ff1b1c7d33d1416159989b0f69e59ec7ee8cb58510df01e454def2108b3dbec"
-    },
-    "@std/data-structures@1.0.6": {
-      "integrity": "76a7fd8080c66604c0496220a791860492ab21a04a63a969c0b9a0609bbbb760"
-    },
     "@std/datetime@0.225.3": {
       "integrity": "fda0b7791b43d9a46764986fec39922a8ceb70ffca642651fa7d0683501a171a"
     },
@@ -124,11 +116,7 @@
       "integrity": "9bdd4ac07cb13e7594ac30e90f6ceef7254ac83a9aeaa089be0008f33aab5cd4",
       "dependencies": [
         "jsr:@std/assert@^1.0.10",
-        "jsr:@std/async",
-        "jsr:@std/data-structures",
-        "jsr:@std/fs@^1.0.9",
-        "jsr:@std/internal",
-        "jsr:@std/path@^1.0.8"
+        "jsr:@std/internal"
       ]
     },
     "@std/text@1.0.11": {
@@ -764,20 +752,7 @@
   },
   "workspace": {
     "dependencies": [
-      "jsr:@cliffy/ansi@^1.0.0-rc.7",
-      "jsr:@cliffy/command@^1.0.0-rc.7",
-      "jsr:@cliffy/prompt@^1.0.0-rc.7",
-      "jsr:@cliffy/table@^1.0.0-rc.7",
-      "jsr:@std/assert@^1.0.11",
-      "jsr:@std/datetime@~0.225.3",
-      "jsr:@std/encoding@^1.0.7",
-      "jsr:@std/fs@^1.0.14",
-      "jsr:@std/path@^1.0.8",
-      "jsr:@std/testing@^1.0.9",
-      "npm:@google/generative-ai@0.22",
-      "npm:@langchain/core@~0.3.40",
-      "npm:@modelcontextprotocol/sdk@^1.6.1",
-      "npm:zod@^3.24.2"
+      "npm:@modelcontextprotocol/sdk@^1.6.1"
     ]
   }
 }

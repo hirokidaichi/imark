@@ -1,5 +1,18 @@
-import { Command, EnumType, NumberType } from "@cliffy/command";
-import { extname } from "@std/path/extname";
+import { Command, EnumType } from "../deps.ts";
+
+// NumberTypeの簡易実装
+class NumberType {
+  // deno-lint-ignore no-explicit-any
+  parse(type: any): number {
+    const value = String(type);
+    const parsedValue = Number(value);
+    if (isNaN(parsedValue)) {
+      throw new Error(`Value "${value}" is not a number.`);
+    }
+    return parsedValue;
+  }
+}
+import { extname } from "../deps.ts";
 import { getApiKey } from "../utils/config.ts";
 import { saveFileWithUniqueNameIfExists } from "../utils/file.ts";
 import { GeminiClient } from "../utils/gemini.ts";

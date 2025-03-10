@@ -1,4 +1,4 @@
-import { join } from "@std/path";
+import { join } from "../deps.ts";
 
 export interface Config {
   googleApiKey: string;

@@ -1,4 +1,4 @@
-import { Command } from "@cliffy/command";
+import { Command } from "../deps.ts";
 import { LANGUAGE_DESCRIPTIONS, SupportedLanguage } from "../lang.ts";
 import { getApiKey } from "../utils/config.ts";
 import { GeminiClient } from "../utils/gemini.ts";
