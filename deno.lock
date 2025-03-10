@@ -26,7 +26,6 @@
     "jsr:@std/text@~1.0.7": "1.0.11",
     "npm:@google/generative-ai@0.22": "0.22.0",
     "npm:@langchain/core@~0.3.40": "0.3.42_zod@3.24.2",
-    "npm:@modelcontextprotocol/sdk@1.6.1": "1.6.1_express@5.0.1_zod@3.24.2",
     "npm:@modelcontextprotocol/sdk@^1.6.1": "1.6.1_express@5.0.1_zod@3.24.2",
     "npm:@types/node@*": "22.12.0",
     "npm:zod@^3.24.2": "3.24.2"
@@ -749,10 +748,5 @@
   "remote": {
     "https://deno.land/std@0.220.1/async/delay.ts": "8e1d18fe8b28ff95885e2bc54eccec1713f57f756053576d8228e6ca110793ad",
     "https://deno.land/std@0.220.1/http/server.ts": "cc8ae0de927c3afc855466b89bf9a7a3196223f47f2723e218912c6ca3eb166c"
-  },
-  "workspace": {
-    "dependencies": [
-      "npm:@modelcontextprotocol/sdk@^1.6.1"
-    ]
   }
 }

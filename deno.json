@@ -15,9 +15,6 @@
     "fix": "claude \"$(cat inst/test-fix.md)\" --dangerously-skip-permissions",
     "fix-lint": "claude \"$(cat inst/test-lint-fix.md)\" --dangerously-skip-permissions"
   },
-  "imports": {
-    "@modelcontextprotocol/sdk": "npm:@modelcontextprotocol/sdk@^1.6.1"
-  },
   "fmt": {
     "include": [
       "src/"
