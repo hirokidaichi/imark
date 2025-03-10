@@ -1,6 +1,5 @@
-import { assertEquals } from "@std/assert";
-import { spy } from "@std/testing/mock";
 import { createMainCommand } from "./commands/main.ts";
+import { assertEquals, spy } from "./deps-testing.ts";
 
 Deno.test("mainCommand", async (t) => {
   const consoleLogSpy = spy(console, "log");

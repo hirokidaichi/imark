@@ -1,7 +1,15 @@
-import { assert, assertEquals, assertExists, assertRejects, assertThrows } from "@std/assert";
-import { exists } from "@std/fs";
-import { join } from "@std/path";
-import { afterEach, beforeEach, describe, it } from "@std/testing/bdd";
+import {
+  afterEach,
+  assert,
+  assertEquals,
+  assertExists,
+  assertRejects,
+  assertThrows,
+  beforeEach,
+  describe,
+  it,
+} from "../deps-testing.ts";
+import { exists, join } from "../deps.ts";
 import { ASPECT_RATIOS, DEFAULT_OPTIONS, SIZE_PRESETS } from "./image_constants.ts";
 import { ImageFXClient } from "./imagefx.ts";
 

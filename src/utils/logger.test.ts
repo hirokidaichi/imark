@@ -1,5 +1,11 @@
-import { assertEquals, assertExists } from "@std/assert";
-import { afterEach, beforeEach, describe, it } from "@std/testing/bdd";
+import {
+  afterEach,
+  assertEquals,
+  assertExists,
+  beforeEach,
+  describe,
+  it,
+} from "../deps-testing.ts";
 import { LogDestination, Logger, LogLevel } from "./logger.ts";
 
 describe("Logger", () => {

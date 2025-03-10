@@ -1,4 +1,4 @@
-import { assertEquals } from "@std/assert";
+import { assertEquals } from "./deps-testing.ts";
 import { LANGUAGE_DESCRIPTIONS } from "./lang.ts";
 
 Deno.test("LANGUAGE_DESCRIPTIONSのテスト", async (t) => {

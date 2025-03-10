@@ -1,5 +1,12 @@
-import { assert, assertEquals, assertExists, assertRejects, assertThrows } from "@std/assert";
-import { describe, it } from "@std/testing/bdd";
+import {
+  assert,
+  assertEquals,
+  assertExists,
+  assertRejects,
+  assertThrows,
+  describe,
+  it,
+} from "../deps-testing.ts";
 import { GeminiClient } from "./gemini.ts";
 
 describe("GeminiClient", () => {

@@ -1,5 +1,4 @@
-import { assertEquals, assertRejects } from "@std/assert";
-import { afterEach, describe, it } from "@std/testing/bdd";
+import { afterEach, assertEquals, assertRejects, describe, it } from "../deps-testing.ts";
 import { ImageFXClient } from "./imagefx.ts";
 
 describe("ImageFXClient", () => {

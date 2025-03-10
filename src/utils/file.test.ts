@@ -1,7 +1,12 @@
-import { assertEquals, assertRejects } from "@std/assert";
-import { exists } from "@std/fs";
-import { join } from "@std/path";
-import { afterEach, beforeEach, describe, it } from "@std/testing/bdd";
+import {
+  afterEach,
+  assertEquals,
+  assertRejects,
+  beforeEach,
+  describe,
+  it,
+} from "../deps-testing.ts";
+import { exists, join } from "../deps.ts";
 import { generateUniqueFilePath, saveFileWithUniqueNameIfExists } from "./file.ts";
 
 describe("ファイル操作ユーティリティのテスト", () => {

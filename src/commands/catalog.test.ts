@@ -1,6 +1,12 @@
-import { assertEquals, assertRejects } from "@std/assert";
-import { join } from "@std/path";
-import { afterEach, beforeEach, describe, it } from "@std/testing/bdd";
+import {
+  afterEach,
+  assertEquals,
+  assertRejects,
+  beforeEach,
+  describe,
+  it,
+} from "../deps-testing.ts";
+import { join } from "../deps.ts";
 import { LogDestination, Logger, LogLevel } from "../utils/logger.ts";
 import { ProcessResult } from "./catalog.ts";
 

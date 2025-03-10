@@ -1,5 +1,4 @@
-import { assertEquals } from "@std/assert";
-import { assertSpyCalls, spy, stub } from "@std/testing/mock";
+import { assertEquals, assertSpyCalls, spy, stub } from "../deps-testing.ts";
 import * as gemini from "../utils/gemini.ts";
 import type { ImageData } from "../utils/image.ts";
 import * as imageUtils from "../utils/image.ts";

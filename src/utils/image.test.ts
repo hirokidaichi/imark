@@ -1,5 +1,4 @@
-import { assertEquals, assertRejects } from "@std/assert";
-import { stub } from "@std/testing/mock";
+import { assertEquals, assertRejects, stub } from "../deps-testing.ts";
 import { getMimeType, readImageFile } from "./image.ts";
 
 Deno.test("getMimeType", async (t) => {
