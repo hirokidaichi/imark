@@ -8,6 +8,20 @@ export interface GenerateCaptionOptions {
   context?: string;
 }
 
+export interface GenerateExplanationOptions {
+  lang: SupportedLanguage;
+  context?: string;
+}
+
+/**
+ * メディアデータ（画像または音声）
+ */
+export interface MediaData {
+  data: string;
+  mimeType: string;
+  type: "image" | "audio";
+}
+
 export interface GeneratePromptOptions {
   type?: ImageType;
 }
@@ -124,6 +138,44 @@ Prompt:
     } catch (error) {
       console.error("Gemini API error:", error);
       throw new Error("キャプションの生成に失敗しました");
+    }
+  }
+
+  /**
+   * 画像または音声ファイルの説明を生成
+   */
+  async generateExplanation(
+    mediaData: MediaData,
+    options: GenerateExplanationOptions
+  ): Promise<string> {
+    try {
+      const typeLabel = mediaData.type === "image" ? "画像" : "音声";
+      const prompt = `この${typeLabel}について、${options.lang}で詳細な説明を生成してください。${
+        options.context ? `\n\nコンテキスト情報:\n${options.context}` : ""
+      }`;
+
+      const response = await this.ai.models.generateContent({
+        model: this.modelName,
+        contents: [
+          {
+            role: "user",
+            parts: [
+              { text: prompt },
+              {
+                inlineData: {
+                  mimeType: mediaData.mimeType,
+                  data: mediaData.data,
+                },
+              },
+            ],
+          },
+        ],
+      });
+
+      return response.text ?? "";
+    } catch (error) {
+      console.error("Gemini API error:", error);
+      throw new Error(`${mediaData.type === "image" ? "画像" : "音声"}の説明生成に失敗しました`);
     }
   }
 

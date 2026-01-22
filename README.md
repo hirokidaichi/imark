@@ -86,8 +86,7 @@ AI画像・動画・音声生成ツール
   audio <text>      音声を生成 (TTS)
 
 分析コマンド:
-  caption <image>   画像のキャプションを生成
-  catalog <dir>     ディレクトリ内の画像を一括処理
+  explain <file>    画像または音声の内容を説明
 
 ユーティリティ:
   configure         APIキーの設定
@@ -97,11 +96,11 @@ AI画像・動画・音声生成ツール
 ### 基本的なコマンド
 
 ```bash
-# 指定したディレクトリの画像を解析して目録を作成
-imark catalog /path/to/images
+# 画像の内容を説明
+imark explain image.jpg
 
-# 単一画像のキャプションを生成
-imark caption image.jpg
+# 音声の内容を説明
+imark explain audio.mp3
 
 # AIを使用して画像を生成 (Imagen 4)
 imark image "画像の説明"
@@ -118,32 +117,23 @@ imark log
 
 ### コマンドとオプション
 
-#### captionコマンド
+#### explainコマンド
 
-単一の画像に対してキャプションを生成します。
-
-```bash
-imark caption [options] <image>
-
-オプション：
-  -l, --lang <lang>      出力言語（ja: 日本語, en: 英語）
-  -f, --format <format>  出力フォーマット（markdown または json）
-  -c, --context <context> コンテキスト情報（.mdファイルパスまたはテキスト）
-```
-
-#### catalogコマンド
-
-ディレクトリ内の画像を一括でキャプション生成します。
+画像または音声ファイルの内容を説明します。
 
 ```bash
-imark catalog [options] <directory>
+imark explain [options] <file>
 
 オプション：
-  -l, --lang <lang>      出力言語（ja: 日本語, en: 英語）
+  -l, --lang <lang>      出力言語（ja: 日本語, en: 英語, zh: 中国語, ko: 韓国語, 他）
   -f, --format <format>  出力フォーマット（markdown または json）
-  -c, --context <context> コンテキスト情報（.mdファイルパスまたはテキスト）
-  -o, --output <file>    出力ファイル名（指定がない場合は標準出力）
+  -c, --context <context> コンテキスト情報（ファイルパスまたはテキスト）
+  -o, --output <path>    出力ファイルパス
 ```
+
+対応ファイル形式：
+- **画像**: jpg, jpeg, png, gif, webp, heic, heif
+- **音声**: mp3, wav, flac, aac, ogg, m4a
 
 #### imageコマンド
 
@@ -253,9 +243,9 @@ imark log [options]
 
 [サンプル画像の完全なカタログはこちら](samples/catalog.md)をご覧ください。
 
-## キャプション生成サンプル
+## 説明生成サンプル
 
-以下は、`imark caption`コマンドを使用して生成したキャプションの例です：
+以下は、`imark explain`コマンドを使用して生成した説明の例です：
 
 | 画像 | 日本語キャプション | English Caption |
 |------|------------------|-----------------|
@@ -263,13 +253,13 @@ imark log [options]
 
 各画像に対して、日本語と英語の両方でキャプションを生成できます。キャプションは画像の内容を詳細に分析し、視覚的な要素や雰囲気を自然な言葉で表現します。
 
-## キャプションを使用した画像生成
+## 説明を使用した画像生成
 
-キャプションを使用して新しい画像を生成することもできます。既存の画像のキャプションを元に、異なるスタイルで画像を生成する例を示します：
+説明を使用して新しい画像を生成することもできます。既存の画像の説明を元に、異なるスタイルで画像を生成する例を示します：
 
 ```bash
-# 既存の画像からキャプションを生成し、それを元に新しい画像を生成する
-imark image "$(imark caption samples/beautiful-mountain-landscape-snow-peaks-.webp)" -t pixel-art -o samples
+# 既存の画像から説明を生成し、それを元に新しい画像を生成する
+imark image "$(imark explain samples/beautiful-mountain-landscape-snow-peaks-.webp)" -t pixel-art -o samples
 ```
 
 ### 生成例
