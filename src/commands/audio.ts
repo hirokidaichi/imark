@@ -1,6 +1,6 @@
 import * as path from "node:path";
 import { Command, Option } from "commander";
-import { getApiKey } from "../utils/config.js";
+import { getApiKey, loadConfig } from "../utils/config.js";
 import { saveFileWithUniqueNameIfExists } from "../utils/file.js";
 import { GeminiClient } from "../utils/gemini.js";
 import { LogDestination, Logger, LogLevel } from "../utils/logger.js";
@@ -57,6 +57,15 @@ export function audioCommand(): Command {
         process.exit(1);
       }
 
+      // 設定ファイルからデフォルト値を読み込み
+      const config = await loadConfig();
+      const effectiveVoice = (options.voice === DEFAULT_TTS_OPTIONS.voice && config?.defaultAudioVoice)
+        ? config.defaultAudioVoice
+        : options.voice;
+      const effectiveFormat = (options.format === DEFAULT_TTS_OPTIONS.format && config?.defaultAudioFormat)
+        ? config.defaultAudioFormat
+        : options.format;
+
       // ロガー設定
       Logger.setGlobalConfig({
         destination: LogDestination.BOTH,
@@ -70,8 +79,8 @@ export function audioCommand(): Command {
         const geminiClient = new GeminiClient(apiKey);
 
         // 音声の検証
-        if (!TTS_VOICES.includes(options.voice)) {
-          throw new Error(`無効な音声: ${options.voice}`);
+        if (!TTS_VOICES.includes(effectiveVoice as TTSVoice)) {
+          throw new Error(`無効な音声: ${effectiveVoice}`);
         }
 
         // 言語の検証
@@ -80,8 +89,8 @@ export function audioCommand(): Command {
         }
 
         // フォーマットの検証
-        if (!TTS_FORMATS.includes(options.format)) {
-          throw new Error(`無効なフォーマット: ${options.format}`);
+        if (!TTS_FORMATS.includes(effectiveFormat as TTSFormat)) {
+          throw new Error(`無効なフォーマット: ${effectiveFormat}`);
         }
 
         // 話速の解析と検証
@@ -90,13 +99,13 @@ export function audioCommand(): Command {
           throw new Error("話速は0.25〜4.0の範囲で指定してください");
         }
 
-        console.log(`音声を生成しています... (音声: ${options.voice})`);
+        console.log(`音声を生成しています... (音声: ${effectiveVoice})`);
 
         // 音声生成
         const result = await ttsClient.generateSpeech(text, {
-          voice: options.voice,
+          voice: effectiveVoice as TTSVoice,
           language: options.lang,
-          format: options.format,
+          format: effectiveFormat as TTSFormat,
           speed,
         });
 
@@ -114,10 +123,10 @@ export function audioCommand(): Command {
             outputPath = options.output;
           } else {
             // ディレクトリとして扱う
-            outputPath = path.join(options.output, `${fileName}.${options.format}`);
+            outputPath = path.join(options.output, `${fileName}.${effectiveFormat}`);
           }
         } else {
-          outputPath = `${fileName}.${options.format}`;
+          outputPath = `${fileName}.${effectiveFormat}`;
         }
 
         // ファイル保存
@@ -125,9 +134,9 @@ export function audioCommand(): Command {
 
         await logger.info("音声を生成しました", {
           path: finalOutputPath,
-          voice: options.voice,
+          voice: effectiveVoice,
           language: options.lang,
-          format: options.format,
+          format: effectiveFormat,
           speed,
         });
 

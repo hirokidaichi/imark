@@ -1,10 +1,71 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import * as os from "node:os";
+import type { SupportedLanguage } from "../lang.js";
 
+/**
+ * 画像生成エンジン
+ */
+export type ImageEngineConfig = "imagen4" | "imagen4-fast" | "imagen4-ultra" | "nano-banana" | "nano-banana-pro";
+
+/**
+ * 画像フォーマット
+ */
+export type ImageFormatConfig = "png" | "jpg" | "jpeg" | "webp";
+
+/**
+ * アスペクト比
+ */
+export type AspectRatioConfig = "16:9" | "4:3" | "1:1" | "9:16" | "3:4";
+
+/**
+ * 音声ボイス
+ */
+export type VoiceConfig = "Aoede" | "Charon" | "Fenrir" | "Kore" | "Puck";
+
+/**
+ * ログレベル
+ */
+export type LogLevelConfig = "debug" | "info" | "warn" | "error";
+
+/**
+ * imark設定
+ */
 export interface Config {
-  googleApiKey: string;
+  // API設定
+  googleApiKey?: string;
+
+  // デフォルト出力設定
+  defaultOutputDir?: string;
+  defaultLanguage?: SupportedLanguage;
+
+  // 画像生成デフォルト
+  defaultImageEngine?: ImageEngineConfig;
+  defaultImageFormat?: ImageFormatConfig;
+  defaultAspectRatio?: AspectRatioConfig;
+  defaultImageType?: string;
+
+  // 音声生成デフォルト
+  defaultAudioVoice?: VoiceConfig;
+  defaultAudioFormat?: "mp3" | "wav";
+
+  // ログ設定
+  logLevel?: LogLevelConfig;
 }
+
+/**
+ * デフォルト設定値
+ */
+export const DEFAULT_CONFIG: Required<Omit<Config, "googleApiKey" | "defaultOutputDir">> = {
+  defaultLanguage: "ja",
+  defaultImageEngine: "imagen4",
+  defaultImageFormat: "webp",
+  defaultAspectRatio: "16:9",
+  defaultImageType: "flat",
+  defaultAudioVoice: "Kore",
+  defaultAudioFormat: "mp3",
+  logLevel: "info",
+};
 
 export interface McpConfig {
   mcpServers: {
@@ -18,12 +79,16 @@ export interface McpConfig {
   };
 }
 
-export function getConfigPath(): string {
+export function getConfigDir(): string {
   const home = os.homedir();
   if (!home) {
     throw new Error("HOME環境変数が設定されていません");
   }
-  return path.join(home, ".imark", "config.json");
+  return path.join(home, ".imark");
+}
+
+export function getConfigPath(): string {
+  return path.join(getConfigDir(), "config.json");
 }
 
 export async function loadConfig(): Promise<Config | null> {
@@ -44,10 +109,46 @@ export async function saveConfig(config: Config): Promise<void> {
   await fs.writeFile(configPath, JSON.stringify(config, null, 2));
 }
 
+/**
+ * 設定値を取得（設定ファイル → デフォルト値の順で解決）
+ */
+export async function getConfigValue<K extends keyof Config>(
+  key: K
+): Promise<Config[K] | undefined> {
+  const config = await loadConfig();
+  if (config && config[key] !== undefined) {
+    return config[key];
+  }
+  return (DEFAULT_CONFIG as Record<string, unknown>)[key] as Config[K] | undefined;
+}
+
+/**
+ * 複数の設定値を一度に取得
+ */
+export async function getConfigValues<K extends keyof Config>(
+  keys: K[]
+): Promise<Pick<Config, K>> {
+  const config = await loadConfig();
+  const result: Partial<Config> = {};
+
+  for (const key of keys) {
+    if (config && config[key] !== undefined) {
+      result[key] = config[key];
+    } else if ((DEFAULT_CONFIG as Record<string, unknown>)[key] !== undefined) {
+      result[key] = (DEFAULT_CONFIG as Record<string, unknown>)[key] as Config[K];
+    }
+  }
+
+  return result as Pick<Config, K>;
+}
+
 export async function getApiKey(): Promise<string> {
-  // 環境変数を優先
-  const envApiKey = process.env.GOOGLE_API_KEY;
+  // 環境変数を優先（GOOGLE_API_KEY → GEMINI_API_KEY）
+  const envApiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
   if (envApiKey) {
+    if (process.env.GOOGLE_API_KEY && process.env.GEMINI_API_KEY) {
+      console.error("Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.");
+    }
     return envApiKey;
   }
 

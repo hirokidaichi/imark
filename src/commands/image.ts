@@ -1,7 +1,7 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { Command, Option } from "commander";
-import { getApiKey } from "../utils/config.js";
+import { getApiKey, loadConfig } from "../utils/config.js";
 import { saveFileWithUniqueNameIfExists } from "../utils/file.js";
 import { GeminiClient } from "../utils/gemini.js";
 import {
@@ -158,6 +158,18 @@ export function imageCommand(): Command {
         process.exit(1);
       }
 
+      // 設定ファイルからデフォルト値を読み込み
+      const config = await loadConfig();
+      const effectiveEngine = (options.engine === "imagen4" && config?.defaultImageEngine)
+        ? config.defaultImageEngine
+        : options.engine;
+      const effectiveFormat = (options.format === DEFAULT_OPTIONS.format && config?.defaultImageFormat)
+        ? config.defaultImageFormat
+        : options.format;
+      const effectiveAspectRatio = (options.aspectRatio === DEFAULT_OPTIONS.aspectRatio && config?.defaultAspectRatio)
+        ? config.defaultAspectRatio
+        : options.aspectRatio;
+
       // ロガー設定
       Logger.setGlobalConfig({
         destination: LogDestination.BOTH,
@@ -168,7 +180,7 @@ export function imageCommand(): Command {
       // 画像編集モードの場合はNano Bananaエンジンを強制
       const isEditMode = !!options.input;
       if (isEditMode) {
-        const engine = options.engine as GenEngine;
+        const engine = effectiveEngine as GenEngine;
         if (engine !== "nano-banana" && engine !== "nano-banana-pro") {
           console.log("画像編集モードではNano Bananaエンジン (-e nano-banana) を使用してください");
           process.exit(1);
@@ -180,7 +192,7 @@ export function imageCommand(): Command {
         const geminiClient = new GeminiClient(apiKey);
 
         let imageData: Uint8Array;
-        const engine = options.engine as GenEngine;
+        const engine = effectiveEngine as GenEngine;
 
         if (isEditMode) {
           // 画像編集モード
@@ -194,7 +206,7 @@ export function imageCommand(): Command {
             await logger.debug("画像編集モード", {
               input: options.input,
               prompt: theme,
-              engine: options.engine,
+              engine: effectiveEngine,
             });
           }
         } else if (engine === "nano-banana" || engine === "nano-banana-pro") {
@@ -205,7 +217,7 @@ export function imageCommand(): Command {
           if (options.debug) {
             await logger.debug("Nano Banana直接モード", {
               prompt: directPrompt,
-              engine: options.engine,
+              engine: effectiveEngine,
             });
           }
 
@@ -232,9 +244,9 @@ export function imageCommand(): Command {
           const imagefxClient = new ImageFXClient(apiKey);
           const imagefxOptions: ImageFXClientOptions = {
             size: options.size as SizePreset,
-            aspectRatio: options.aspectRatio as AspectRatio,
+            aspectRatio: effectiveAspectRatio as AspectRatio,
             type: options.type as ImageType,
-            format: options.format as ImageFormat,
+            format: effectiveFormat as ImageFormat,
             quality: options.quality ? Number(options.quality) : DEFAULT_OPTIONS.quality,
             engine: engine as ImageEngine,
           };
@@ -250,7 +262,7 @@ export function imageCommand(): Command {
         // 出力パス解決
         const { path: outputPath, format } = await resolveOutputPath(
           options.output,
-          options.format as ImageFormat,
+          effectiveFormat as ImageFormat,
           fileName
         );
 
@@ -263,8 +275,8 @@ export function imageCommand(): Command {
           format,
           type: options.type,
           size: options.size,
-          aspectRatio: options.aspectRatio,
-          engine: options.engine,
+          aspectRatio: effectiveAspectRatio,
+          engine: effectiveEngine,
           ...(isEditMode ? { input: options.input } : {}),
         });
 

@@ -2,7 +2,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { Command } from "commander";
 import { LANGUAGE_DESCRIPTIONS, type SupportedLanguage } from "../lang.js";
-import { getApiKey } from "../utils/config.js";
+import { getApiKey, loadConfig } from "../utils/config.js";
 import { GeminiClient } from "../utils/gemini.js";
 
 /**
@@ -134,6 +134,12 @@ export function explainCommand(): Command {
     .option("-o, --output <path>", "出力ファイルパス")
     .action(async (filePath: string, options: ExplainOptions) => {
       try {
+        // 設定ファイルからデフォルト値を読み込み
+        const config = await loadConfig();
+        const effectiveLang = (options.lang === "ja" && config?.defaultLanguage)
+          ? config.defaultLanguage
+          : options.lang;
+
         const apiKey = await getApiKey();
         const client = new GeminiClient(apiKey);
 
@@ -142,8 +148,8 @@ export function explainCommand(): Command {
 
         // 言語バリデーション
         const validLanguages = Object.keys(LANGUAGE_DESCRIPTIONS) as SupportedLanguage[];
-        const lang: SupportedLanguage = validLanguages.includes(options.lang as SupportedLanguage)
-          ? (options.lang as SupportedLanguage)
+        const lang: SupportedLanguage = validLanguages.includes(effectiveLang as SupportedLanguage)
+          ? (effectiveLang as SupportedLanguage)
           : "ja";
 
         // フォーマットバリデーション
