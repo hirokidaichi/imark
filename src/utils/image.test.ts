@@ -1,8 +1,11 @@
-import { assertEquals, assertRejects, stub } from "../deps-testing.ts";
-import { getMimeType, readImageFile } from "./image.ts";
+import * as fs from "node:fs/promises";
+import * as os from "node:os";
+import * as path from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { getMimeType, readImageFile } from "./image.js";
 
-Deno.test("getMimeType", async (t) => {
-  await t.step("正常系 - 各種画像形式のMIMEタイプを正しく返す", () => {
+describe("getMimeType", () => {
+  it("正常系 - 各種画像形式のMIMEタイプを正しく返す", () => {
     const testCases = [
       { path: "test.jpg", expected: "image/jpeg" },
       { path: "test.jpeg", expected: "image/jpeg" },
@@ -14,57 +17,48 @@ Deno.test("getMimeType", async (t) => {
     ];
 
     for (const { path, expected } of testCases) {
-      assertEquals(getMimeType(path), expected);
+      expect(getMimeType(path)).toBe(expected);
     }
   });
 
-  await t.step("異常系 - サポートされていない拡張子", () => {
-    try {
-      getMimeType("test.txt");
-      throw new Error("エラーが発生しませんでした");
-    } catch (error) {
-      if (error instanceof Error) {
-        assertEquals(error.message, "サポートされていないファイル形式です: .txt");
-      } else {
-        throw error;
-      }
-    }
+  it("異常系 - サポートされていない拡張子", () => {
+    expect(() => getMimeType("test.txt")).toThrow("サポートされていないファイル形式です: .txt");
   });
 });
 
-Deno.test("readImageFile", async (t) => {
-  const mockImageData = new Uint8Array([1, 2, 3, 4]);
-  const mockBase64 = "AQIDBA=="; // [1,2,3,4]のBase64エンコード
+describe("readImageFile", () => {
+  let tempDir: string;
 
-  await t.step("正常系 - 画像ファイルを読み込んでBase64エンコード", async () => {
-    const readFileStub = stub(Deno, "readFile", () => Promise.resolve(mockImageData));
+  beforeEach(async () => {
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "imark_test_image_"));
+  });
 
+  afterEach(async () => {
     try {
-      const result = await readImageFile("test.jpg");
-      assertEquals(result, {
-        data: mockBase64,
-        mimeType: "image/jpeg",
-      });
-    } finally {
-      readFileStub.restore();
+      await fs.rm(tempDir, { recursive: true });
+    } catch {
+      // ignore
     }
   });
 
-  await t.step("異常系 - ファイル読み込みエラー", async () => {
-    const readFileStub = stub(
-      Deno,
-      "readFile",
-      () => Promise.reject(new Error("File not found")),
-    );
+  it("正常系 - 画像ファイルを読み込んでBase64エンコード", async () => {
+    const mockImageData = Buffer.from([1, 2, 3, 4]);
+    const mockBase64 = "AQIDBA=="; // [1,2,3,4]のBase64エンコード
 
-    try {
-      await assertRejects(
-        async () => await readImageFile("nonexistent.jpg"),
-        Error,
-        "画像ファイルの読み込みに失敗しました: File not found",
-      );
-    } finally {
-      readFileStub.restore();
-    }
+    const testPath = path.join(tempDir, "test.jpg");
+    await fs.writeFile(testPath, mockImageData);
+
+    const result = await readImageFile(testPath);
+    expect(result).toEqual({
+      data: mockBase64,
+      mimeType: "image/jpeg",
+    });
+  });
+
+  it("異常系 - ファイル読み込みエラー", async () => {
+    const nonExistentPath = path.join(tempDir, "nonexistent.jpg");
+    await expect(readImageFile(nonExistentPath)).rejects.toThrow(
+      "画像ファイルの読み込みに失敗しました"
+    );
   });
 });

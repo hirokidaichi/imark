@@ -1,4 +1,6 @@
-import { join } from "../deps.ts";
+import * as fs from "node:fs/promises";
+import * as path from "node:path";
+import * as os from "node:os";
 
 export interface Config {
   googleApiKey: string;
@@ -17,17 +19,17 @@ export interface McpConfig {
 }
 
 export function getConfigPath(): string {
-  const home = Deno.env.get("HOME");
+  const home = os.homedir();
   if (!home) {
     throw new Error("HOME環境変数が設定されていません");
   }
-  return join(home, ".imark", "config.json");
+  return path.join(home, ".imark", "config.json");
 }
 
 export async function loadConfig(): Promise<Config | null> {
   try {
     const configPath = getConfigPath();
-    const configText = await Deno.readTextFile(configPath);
+    const configText = await fs.readFile(configPath, "utf-8");
     return JSON.parse(configText) as Config;
   } catch {
     return null;
@@ -36,24 +38,15 @@ export async function loadConfig(): Promise<Config | null> {
 
 export async function saveConfig(config: Config): Promise<void> {
   const configPath = getConfigPath();
-  const configDir = configPath.substring(0, configPath.lastIndexOf("/"));
+  const configDir = path.dirname(configPath);
 
-  try {
-    await Deno.mkdir(configDir, { recursive: true });
-  } catch (error) {
-    if (error instanceof Deno.errors.AlreadyExists) {
-      // ディレクトリが既に存在する場合は無視
-    } else {
-      throw error;
-    }
-  }
-
-  await Deno.writeTextFile(configPath, JSON.stringify(config, null, 2));
+  await fs.mkdir(configDir, { recursive: true });
+  await fs.writeFile(configPath, JSON.stringify(config, null, 2));
 }
 
 export async function getApiKey(): Promise<string> {
   // 環境変数を優先
-  const envApiKey = Deno.env.get("GOOGLE_API_KEY");
+  const envApiKey = process.env.GOOGLE_API_KEY;
   if (envApiKey) {
     return envApiKey;
   }
@@ -65,14 +58,14 @@ export async function getApiKey(): Promise<string> {
   }
 
   throw new Error(
-    "GOOGLE_API_KEYが設定されていません。`imark configure`コマンドで設定してください。",
+    "GOOGLE_API_KEYが設定されていません。`imark configure`コマンドで設定してください。"
   );
 }
 
 export async function loadMcpConfig(dir: string): Promise<McpConfig | null> {
   try {
-    const configPath = join(dir, ".cursor", "mcp.json");
-    const configText = await Deno.readTextFile(configPath);
+    const configPath = path.join(dir, ".cursor", "mcp.json");
+    const configText = await fs.readFile(configPath, "utf-8");
     return JSON.parse(configText) as McpConfig;
   } catch {
     return null;
@@ -80,18 +73,9 @@ export async function loadMcpConfig(dir: string): Promise<McpConfig | null> {
 }
 
 export async function saveMcpConfig(dir: string, config: McpConfig): Promise<void> {
-  const configPath = join(dir, ".cursor", "mcp.json");
-  const configDir = join(dir, ".cursor");
+  const configPath = path.join(dir, ".cursor", "mcp.json");
+  const configDir = path.join(dir, ".cursor");
 
-  try {
-    await Deno.mkdir(configDir, { recursive: true });
-  } catch (error) {
-    if (error instanceof Deno.errors.AlreadyExists) {
-      // ディレクトリが既に存在する場合は無視
-    } else {
-      throw error;
-    }
-  }
-
-  await Deno.writeTextFile(configPath, JSON.stringify(config, null, 2));
+  await fs.mkdir(configDir, { recursive: true });
+  await fs.writeFile(configPath, JSON.stringify(config, null, 2));
 }

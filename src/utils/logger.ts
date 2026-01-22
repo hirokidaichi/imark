@@ -1,6 +1,7 @@
-import { format } from "../deps.ts";
-import { ensureDir } from "../deps.ts";
-import { join } from "../deps.ts";
+import * as fs from "node:fs/promises";
+import * as path from "node:path";
+import * as os from "node:os";
+import { format } from "date-fns";
 
 export enum LogLevel {
   DEBUG = "DEBUG",
@@ -43,14 +44,13 @@ export class Logger {
 
   private logDir: string;
   private currentLogFile: string;
-  private encoder = new TextEncoder();
 
   private constructor(private name: string) {
-    const home = Deno.env.get("HOME");
+    const home = os.homedir();
     if (!home) {
       throw new Error("HOME環境変数が設定されていません");
     }
-    this.logDir = join(home, ".imark", "logs");
+    this.logDir = path.join(home, ".imark", "logs");
     this.currentLogFile = this.generateLogFileName();
   }
 
@@ -88,11 +88,11 @@ export class Logger {
   private generateLogFileName(): string {
     const date = new Date();
     const formattedDate = format(date, "yyyy-MM-dd");
-    return join(this.logDir, `${this.name}-${formattedDate}.log`);
+    return path.join(this.logDir, `${this.name}-${formattedDate}.log`);
   }
 
   private async ensureLogDirectory(): Promise<void> {
-    await ensureDir(this.logDir);
+    await fs.mkdir(this.logDir, { recursive: true });
   }
 
   private formatLogEntry(level: LogLevel, message: string, data?: unknown): LogEntry {
@@ -120,10 +120,12 @@ export class Logger {
       return;
     }
 
-    const logToConsole = Logger.globalConfig.destination === LogDestination.CONSOLE ||
+    const logToConsole =
+      Logger.globalConfig.destination === LogDestination.CONSOLE ||
       Logger.globalConfig.destination === LogDestination.BOTH;
 
-    const logToFile = Logger.globalConfig.destination === LogDestination.FILE ||
+    const logToFile =
+      Logger.globalConfig.destination === LogDestination.FILE ||
       Logger.globalConfig.destination === LogDestination.BOTH;
 
     if (logToConsole) {
@@ -168,11 +170,7 @@ export class Logger {
     const logLine = JSON.stringify(entry) + "\n";
 
     try {
-      await Deno.writeFile(
-        this.currentLogFile,
-        this.encoder.encode(logLine),
-        { append: true, create: true },
-      );
+      await fs.appendFile(this.currentLogFile, logLine);
     } catch (error: unknown) {
       // ログ書き込みに失敗した場合は標準エラー出力に出力
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -228,7 +226,7 @@ export class Logger {
     try {
       await this.ensureLogDirectory();
 
-      const logContent = await Deno.readTextFile(this.currentLogFile);
+      const logContent = await fs.readFile(this.currentLogFile, "utf-8");
       const lines = logContent.trim().split("\n");
 
       const entries: LogEntry[] = [];
@@ -255,7 +253,7 @@ export class Logger {
 
       return entries;
     } catch (error) {
-      if (error instanceof Deno.errors.NotFound) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
         return [];
       }
       throw error;

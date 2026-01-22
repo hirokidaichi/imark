@@ -1,0 +1,74 @@
+{
+  "name": "@hirokidaichi/imark",
+  "version": "0.3.0",
+  "description": "AI画像・動画・音声生成ツール - Google Gemini/Imagen/Veo APIを使用",
+  "type": "module",
+  "bin": {
+    "imark": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "tsx src/index.ts",
+    "build": "tsup src/index.ts --format esm --dts --clean",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "tsc --noEmit",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "format": "prettier --write src/",
+    "format:check": "prettier --check src/",
+    "check-all": "npm run check && npm run lint && npm run format:check && npm run test",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "image",
+    "caption",
+    "ai",
+    "gemini",
+    "imagen",
+    "cli"
+  ],
+  "author": "hirokidaichi",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/hirokidaichi/imark.git"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "@breezystack/lamejs": "^1.2.7",
+    "@google/genai": "^1.0.0",
+    "@modelcontextprotocol/sdk": "^1.6.1",
+    "chalk": "^5.3.0",
+    "cli-table3": "^0.6.5",
+    "commander": "^12.1.0",
+    "date-fns": "^3.6.0",
+    "fs-extra": "^11.2.0",
+    "inquirer": "^9.3.7",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/inquirer": "^9.0.7",
+    "@types/node": "^20.17.0",
+    "eslint": "^9.15.0",
+    "prettier": "^3.4.0",
+    "tsup": "^8.3.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.15.0",
+    "vitest": "^2.1.5"
+  }
+}

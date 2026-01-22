@@ -1,8 +1,8 @@
-import { assertEquals } from "./deps-testing.ts";
-import { LANGUAGE_DESCRIPTIONS } from "./lang.ts";
+import { describe, expect, it } from "vitest";
+import { LANGUAGE_DESCRIPTIONS } from "./lang.js";
 
-Deno.test("LANGUAGE_DESCRIPTIONSのテスト", async (t) => {
-  await t.step("すべての言語に正しい説明が設定されている", () => {
+describe("LANGUAGE_DESCRIPTIONS", () => {
+  it("すべての言語に正しい説明が設定されている", () => {
     const expected = {
       ja: "日本語",
       en: "英語",
@@ -16,10 +16,10 @@ Deno.test("LANGUAGE_DESCRIPTIONSのテスト", async (t) => {
       vi: "ベトナム語",
     };
 
-    assertEquals(LANGUAGE_DESCRIPTIONS, expected);
+    expect(LANGUAGE_DESCRIPTIONS).toEqual(expected);
   });
 
-  await t.step("サポートされている言語の数が正しい", () => {
-    assertEquals(Object.keys(LANGUAGE_DESCRIPTIONS).length, 10);
+  it("サポートされている言語の数が正しい", () => {
+    expect(Object.keys(LANGUAGE_DESCRIPTIONS).length).toBe(10);
   });
 });

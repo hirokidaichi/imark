@@ -2,6 +2,8 @@
  * ファイル操作に関するユーティリティ関数
  */
 
+import * as fs from "node:fs/promises";
+
 /**
  * 指定されたパスにファイルが既に存在する場合、
  * ファイル名に乱数を追加して一意のファイルパスを生成します
@@ -12,14 +14,14 @@
  */
 export async function generateUniqueFilePath(
   outputPath: string,
-  maxRetries = 3,
+  maxRetries = 3
 ): Promise<string> {
   let finalOutputPath = outputPath;
   let retryCount = 0;
 
   while (retryCount < maxRetries) {
     try {
-      await Deno.stat(finalOutputPath);
+      await fs.stat(finalOutputPath);
       // ファイルが存在する場合、乱数を追加
       const baseName = finalOutputPath.slice(0, finalOutputPath.lastIndexOf("."));
       const ext = finalOutputPath.slice(finalOutputPath.lastIndexOf("."));
@@ -27,7 +29,7 @@ export async function generateUniqueFilePath(
       finalOutputPath = `${baseName}-${randomNum}${ext}`;
       retryCount++;
     } catch (error) {
-      if (error instanceof Deno.errors.NotFound) {
+      if ((error as NodeJS.ErrnoException).code === "ENOENT") {
         // ファイルが存在しない場合、このパスを使用
         return finalOutputPath;
       }
@@ -37,7 +39,7 @@ export async function generateUniqueFilePath(
 
   // 最大試行回数に達した場合はエラーを投げる
   throw new Error(
-    `ファイル名の生成に失敗しました。${maxRetries}回試行しましたが、すべて既存のファイル名と衝突しています。`,
+    `ファイル名の生成に失敗しました。${maxRetries}回試行しましたが、すべて既存のファイル名と衝突しています。`
   );
 }
 
@@ -53,9 +55,9 @@ export async function generateUniqueFilePath(
 export async function saveFileWithUniqueNameIfExists(
   outputPath: string,
   data: Uint8Array,
-  maxRetries = 3,
+  maxRetries = 3
 ): Promise<string> {
   const finalOutputPath = await generateUniqueFilePath(outputPath, maxRetries);
-  await Deno.writeFile(finalOutputPath, data);
+  await fs.writeFile(finalOutputPath, data);
   return finalOutputPath;
 }

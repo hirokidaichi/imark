@@ -37,10 +37,7 @@ export type SizePreset = "tiny" | "hd" | "fullhd" | "2k" | "4k";
 /**
  * 安全性フィルターレベルの型定義
  */
-export type SafetyFilterLevel =
-  | "BLOCK_LOW_AND_ABOVE"
-  | "BLOCK_MEDIUM_AND_ABOVE"
-  | "BLOCK_ONLY_HIGH";
+export type SafetyFilterLevel = "BLOCK_LOW_AND_ABOVE";
 
 /**
  * 人物生成の設定の型定義
@@ -117,7 +114,7 @@ export const DEFAULT_OPTIONS: ImageFXOptions = {
   quality: 90,
   type: "flat",
   numberOfImages: 1,
-  safetyFilterLevel: "BLOCK_ONLY_HIGH",
+  safetyFilterLevel: "BLOCK_LOW_AND_ABOVE",
   personGeneration: "ALLOW_ADULT",
 } as const;
 

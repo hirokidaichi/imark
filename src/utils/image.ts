@@ -1,15 +1,15 @@
-import { encodeBase64 } from "../deps.ts";
+import * as fs from "node:fs/promises";
 
 export interface ImageData {
   data: string;
   mimeType: string;
 }
 
-export async function readImageFile(path: string): Promise<ImageData> {
+export async function readImageFile(filePath: string): Promise<ImageData> {
   try {
-    const imageData = await Deno.readFile(path);
-    const base64Data = encodeBase64(imageData);
-    const mimeType = getMimeType(path);
+    const imageBuffer = await fs.readFile(filePath);
+    const base64Data = imageBuffer.toString("base64");
+    const mimeType = getMimeType(filePath);
 
     return {
       data: base64Data,

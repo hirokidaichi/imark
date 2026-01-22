@@ -1,7 +1,7 @@
-import { GenerativeModel, GoogleGenerativeAI } from "../deps.ts";
-import { SupportedLanguage } from "../lang.ts";
-import { ImageData } from "./image.ts";
-import { IMAGE_TYPE_PROMPTS, ImageType } from "./image_constants.ts";
+import { GoogleGenAI } from "@google/genai";
+import type { SupportedLanguage } from "../lang.js";
+import type { ImageData } from "./image.js";
+import { IMAGE_TYPE_PROMPTS, type ImageType } from "./image_constants.js";
 
 export interface GenerateCaptionOptions {
   lang: SupportedLanguage;
@@ -18,21 +18,20 @@ export interface GenerateFileNameOptions {
 }
 
 export class GeminiClient {
-  private genAI: GoogleGenerativeAI;
-  private model: GenerativeModel;
+  private ai: GoogleGenAI;
+  private modelName = "gemini-3-flash-preview";
 
   constructor(apiKey: string) {
     if (!apiKey) {
       throw new Error("GOOGLE_API_KEY環境変数が設定されていません");
     }
-    this.genAI = new GoogleGenerativeAI(apiKey);
-    this.model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    this.ai = new GoogleGenAI({ apiKey });
   }
 
   async generatePrompt(
     message: string,
     context: string,
-    options: GeneratePromptOptions = {},
+    options: GeneratePromptOptions = {}
   ): Promise<string> {
     if (!message) {
       throw new Error("メッセージが空です");
@@ -50,13 +49,13 @@ Context:
 ${context}
 
 ${
-      typePrompt
-        ? `Style Requirements:
+  typePrompt
+    ? `Style Requirements:
 ${typePrompt}
 
 `
-        : ""
-    }Please generate a prompt that meets the following criteria:
+    : ""
+}Please generate a prompt that meets the following criteria:
 1. Include specific and detailed descriptions
 2. Clearly specify the image style and atmosphere
 3. Include all necessary elements
@@ -86,9 +85,11 @@ Prompt:
 `;
 
     try {
-      const result = await this.model.generateContent(prompt);
-      const response = await result.response;
-      return response.text();
+      const response = await this.ai.models.generateContent({
+        model: this.modelName,
+        contents: prompt,
+      });
+      return response.text ?? "";
     } catch (error) {
       console.error("Gemini API error:", error);
       throw new Error("プロンプトの生成に失敗しました");
@@ -100,17 +101,26 @@ Prompt:
       const prompt = `この画像について、${options.lang}で詳細な説明を生成してください。${
         options.context ? `\n\nコンテキスト情報:\n${options.context}` : ""
       }`;
-      const result = await this.model.generateContent([
-        prompt,
-        {
-          inlineData: {
-            mimeType: imageData.mimeType,
-            data: imageData.data,
+
+      const response = await this.ai.models.generateContent({
+        model: this.modelName,
+        contents: [
+          {
+            role: "user",
+            parts: [
+              { text: prompt },
+              {
+                inlineData: {
+                  mimeType: imageData.mimeType,
+                  data: imageData.data,
+                },
+              },
+            ],
           },
-        },
-      ]);
-      const response = await result.response;
-      return response.text();
+        ],
+      });
+
+      return response.text ?? "";
     } catch (error) {
       console.error("Gemini API error:", error);
       throw new Error("キャプションの生成に失敗しました");
@@ -118,10 +128,7 @@ Prompt:
   }
 
   async generateFileName(prompt: string, options: GenerateFileNameOptions = {}): Promise<string> {
-    const {
-      maxLength = 50,
-      includeRandomNumber = true,
-    } = options;
+    const { maxLength = 50, includeRandomNumber = true } = options;
 
     if (!prompt) {
       throw new Error("プロンプトが空です");
@@ -145,9 +152,12 @@ ${prompt}
 `;
 
     try {
-      const result = await this.model.generateContent(promptForFileName);
-      const response = await result.response;
-      let fileName = response.text().trim();
+      const response = await this.ai.models.generateContent({
+        model: this.modelName,
+        contents: promptForFileName,
+      });
+
+      let fileName = (response.text ?? "").trim();
 
       // ファイル名の正規化
       fileName = fileName
@@ -163,7 +173,9 @@ ${prompt}
 
       // ランダムな数字の追加
       if (includeRandomNumber) {
-        const randomNum = Math.floor(Math.random() * 10000).toString().padStart(4, "0");
+        const randomNum = Math.floor(Math.random() * 10000)
+          .toString()
+          .padStart(4, "0");
         fileName = `${fileName}-${randomNum}`;
       }
 

@@ -1,37 +1,12 @@
-import { colors, Command } from "../deps.ts";
-import { LogDestination, LogEntry, Logger, LogLevel } from "../utils/logger.ts";
+import chalk from "chalk";
+import { Command } from "commander";
+import { LogDestination, type LogEntry, Logger, LogLevel } from "../utils/logger.js";
 
-export const logCommand = new Command()
-  .description("ログを表示します")
-  .option("-n, --lines <lines:number>", "表示する行数", { default: 20 })
-  .option("-l, --level <level:string>", "表示するログレベル (debug, info, warn, error)", {
-    default: "info",
-  })
-  .option("--mcp", "MCPサーバーのログのみを表示", { default: true })
-  .action(async ({ lines, level, mcp }) => {
-    const logLevel = parseLogLevel(level);
-    const logger = Logger.getInstance({
-      name: mcp ? "mcp" : "imark",
-      config: {
-        destination: LogDestination.CONSOLE,
-      },
-    });
-
-    try {
-      const entries = await logger.getLogEntries(logLevel, lines);
-
-      if (entries.length === 0) {
-        console.log("ログが見つかりませんでした");
-        return;
-      }
-
-      displayLogs(entries);
-    } catch (error) {
-      console.error(
-        `ログの取得に失敗しました: ${error instanceof Error ? error.message : String(error)}`,
-      );
-    }
-  });
+interface LogOptions {
+  lines: string;
+  level: string;
+  mcp: boolean;
+}
 
 function parseLogLevel(level: string): LogLevel {
   switch (level.toLowerCase()) {
@@ -52,22 +27,22 @@ function displayLogs(entries: LogEntry[]): void {
   for (const entry of entries) {
     const timestamp = entry.timestamp.replace("T", " ").replace(/\.\d+Z$/, "");
 
-    let levelColor;
+    let levelColor: (text: string) => string;
     switch (entry.level) {
       case LogLevel.DEBUG:
-        levelColor = colors.gray;
+        levelColor = chalk.gray;
         break;
       case LogLevel.INFO:
-        levelColor = colors.blue;
+        levelColor = chalk.blue;
         break;
       case LogLevel.WARN:
-        levelColor = colors.yellow;
+        levelColor = chalk.yellow;
         break;
       case LogLevel.ERROR:
-        levelColor = colors.red;
+        levelColor = chalk.red;
         break;
       default:
-        levelColor = colors.white;
+        levelColor = chalk.white;
     }
 
     const levelText = levelColor(entry.level);
@@ -75,4 +50,37 @@ function displayLogs(entries: LogEntry[]): void {
 
     console.log(`[${timestamp}] ${levelText} ${entry.message}${dataText}`);
   }
+}
+
+export function logCommand(): Command {
+  return new Command("log")
+    .description("ログを表示します")
+    .option("-n, --lines <lines>", "表示する行数", "20")
+    .option("-l, --level <level>", "表示するログレベル (debug, info, warn, error)", "info")
+    .option("--mcp", "MCPサーバーのログのみを表示", true)
+    .action(async (options: LogOptions) => {
+      const lines = parseInt(options.lines, 10) || 20;
+      const logLevel = parseLogLevel(options.level);
+      const logger = Logger.getInstance({
+        name: options.mcp ? "mcp" : "imark",
+        config: {
+          destination: LogDestination.CONSOLE,
+        },
+      });
+
+      try {
+        const entries = await logger.getLogEntries(logLevel, lines);
+
+        if (entries.length === 0) {
+          console.log("ログが見つかりませんでした");
+          return;
+        }
+
+        displayLogs(entries);
+      } catch (error) {
+        console.error(
+          `ログの取得に失敗しました: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+    });
 }

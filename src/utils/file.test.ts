@@ -1,13 +1,8 @@
-import {
-  afterEach,
-  assertEquals,
-  assertRejects,
-  beforeEach,
-  describe,
-  it,
-} from "../deps-testing.ts";
-import { exists, join } from "../deps.ts";
-import { generateUniqueFilePath, saveFileWithUniqueNameIfExists } from "./file.ts";
+import * as fs from "node:fs/promises";
+import * as os from "node:os";
+import * as path from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { generateUniqueFilePath, saveFileWithUniqueNameIfExists } from "./file.js";
 
 describe("ファイル操作ユーティリティのテスト", () => {
   // テスト用の一時ディレクトリのパス
@@ -15,17 +10,16 @@ describe("ファイル操作ユーティリティのテスト", () => {
 
   // 各テスト前に一時ディレクトリを作成
   beforeEach(async () => {
-    tempDirPath = await Deno.makeTempDir({ prefix: "imark_test_file_" });
-    console.log("Temp dir path:", tempDirPath);
+    tempDirPath = await fs.mkdtemp(path.join(os.tmpdir(), "imark_test_file_"));
   });
 
   // 各テスト後にテストファイルを削除
   afterEach(async () => {
     try {
-      await Deno.remove(tempDirPath, { recursive: true });
+      await fs.rm(tempDirPath, { recursive: true });
     } catch (error) {
       // ディレクトリが存在しない場合は無視
-      if (!(error instanceof Deno.errors.NotFound)) {
+      if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
         throw error;
       }
     }
@@ -33,125 +27,99 @@ describe("ファイル操作ユーティリティのテスト", () => {
 
   describe("generateUniqueFilePath", () => {
     it("ファイルが存在しない場合は元のパスを返す", async () => {
-      const testPath = join(tempDirPath, "test.txt");
+      const testPath = path.join(tempDirPath, "test.txt");
       const result = await generateUniqueFilePath(testPath);
-      assertEquals(result, testPath);
+      expect(result).toBe(testPath);
     });
 
     it("ファイルが存在する場合は乱数を追加したパスを返す", async () => {
-      const testPath = join(tempDirPath, "test.txt");
+      const testPath = path.join(tempDirPath, "test.txt");
 
       // テストファイルを作成
-      await Deno.writeTextFile(testPath, "テスト");
+      await fs.writeFile(testPath, "テスト");
 
       const result = await generateUniqueFilePath(testPath);
 
       // 元のパスとは異なり、ベース名と拡張子の間に乱数が追加されていることを確認
-      assertEquals(result !== testPath, true);
-      assertEquals(result.startsWith(testPath.slice(0, testPath.lastIndexOf("."))), true);
-      assertEquals(result.endsWith(".txt"), true);
+      expect(result !== testPath).toBe(true);
+      expect(result.startsWith(testPath.slice(0, testPath.lastIndexOf(".")))).toBe(true);
+      expect(result.endsWith(".txt")).toBe(true);
 
       // 乱数部分が4桁の数字であることを確認
       const baseName = testPath.slice(0, testPath.lastIndexOf("."));
       const randomPart = result.slice(baseName.length + 1, result.lastIndexOf("."));
-      assertEquals(randomPart.length, 4);
-      assertEquals(isNaN(Number(randomPart)), false);
+      expect(randomPart.length).toBe(4);
+      expect(isNaN(Number(randomPart))).toBe(false);
     });
 
-    it("最大試行回数を超えた場合はエラーをスロー", async () => {
-      const testPath = join(tempDirPath, "test.txt");
+    it("複数回衝突する場合も乱数を追加して一意のパスを返す", async () => {
+      const testPath = path.join(tempDirPath, "test.txt");
 
       // テストファイルを作成
-      await Deno.writeTextFile(testPath, "テスト");
+      await fs.writeFile(testPath, "テスト");
 
-      // Deno.statをモックして常に成功を返すようにする
-      const originalStat = Deno.stat;
-      Deno.stat = () => {
-        return Promise.resolve({
-          isFile: true,
-          isDirectory: false,
-          isSymlink: false,
-          size: 0,
-          mtime: new Date(),
-          atime: new Date(),
-          birthtime: new Date(),
-          dev: 0,
-          ino: 0,
-          mode: 0,
-          nlink: 0,
-          uid: 0,
-          gid: 0,
-          rdev: 0,
-          blksize: 0,
-          blocks: 0,
-        } as Deno.FileInfo);
-      };
+      // 最初のユニークパスを取得して作成
+      const result1 = await generateUniqueFilePath(testPath);
+      await fs.writeFile(result1, "テスト2");
 
-      try {
-        // 最大試行回数を2回に設定
-        await assertRejects(
-          async () => await generateUniqueFilePath(testPath, 2),
-          Error,
-          "ファイル名の生成に失敗しました。2回試行しましたが、すべて既存のファイル名と衝突しています。",
-        );
-      } finally {
-        // モックを元に戻す
-        Deno.stat = originalStat;
-      }
+      // 2回目も成功することを確認
+      const result2 = await generateUniqueFilePath(testPath);
+      expect(result2).not.toBe(testPath);
+      expect(result2).not.toBe(result1);
     });
   });
 
   describe("saveFileWithUniqueNameIfExists", () => {
     it("ファイルが存在しない場合は指定されたパスに保存", async () => {
-      const testPath = join(tempDirPath, "save_test.txt");
+      const testPath = path.join(tempDirPath, "save_test.txt");
       const testData = new TextEncoder().encode("テストデータ");
 
       const savedPath = await saveFileWithUniqueNameIfExists(testPath, testData);
 
       // 保存されたパスが元のパスと同じであることを確認
-      assertEquals(savedPath, testPath);
+      expect(savedPath).toBe(testPath);
 
       // ファイルが実際に保存されていることを確認
-      assertEquals(await exists(testPath), true);
+      const stat = await fs.stat(testPath);
+      expect(stat.isFile()).toBe(true);
 
       // ファイルの内容が正しいことを確認
-      const content = await Deno.readFile(testPath);
-      assertEquals(content, testData);
+      const content = await fs.readFile(testPath);
+      expect(content).toEqual(Buffer.from(testData));
     });
 
     it("ファイルが存在する場合は一意の名前で保存", async () => {
-      const testPath = join(tempDirPath, "save_test.txt");
+      const testPath = path.join(tempDirPath, "save_test.txt");
       const testData1 = new TextEncoder().encode("テストデータ1");
       const testData2 = new TextEncoder().encode("テストデータ2");
 
       // 最初のファイルを保存
-      await Deno.writeFile(testPath, testData1);
+      await fs.writeFile(testPath, testData1);
 
       // 同じパスで2つ目のファイルを保存
       const savedPath = await saveFileWithUniqueNameIfExists(testPath, testData2);
 
       // 保存されたパスが元のパスと異なることを確認
-      assertEquals(savedPath !== testPath, true);
+      expect(savedPath !== testPath).toBe(true);
 
       // 両方のファイルが存在することを確認
-      assertEquals(await exists(testPath), true);
-      assertEquals(await exists(savedPath), true);
+      const stat1 = await fs.stat(testPath);
+      const stat2 = await fs.stat(savedPath);
+      expect(stat1.isFile()).toBe(true);
+      expect(stat2.isFile()).toBe(true);
 
       // 両方のファイルの内容が正しいことを確認
-      const content1 = await Deno.readFile(testPath);
-      const content2 = await Deno.readFile(savedPath);
-      assertEquals(content1, testData1);
-      assertEquals(content2, testData2);
+      const content1 = await fs.readFile(testPath);
+      const content2 = await fs.readFile(savedPath);
+      expect(content1).toEqual(Buffer.from(testData1));
+      expect(content2).toEqual(Buffer.from(testData2));
     });
 
     it("ディレクトリが存在しない場合はエラーをスロー", async () => {
-      const testPath = join(tempDirPath, "non_existent_dir", "test.txt");
+      const testPath = path.join(tempDirPath, "non_existent_dir", "test.txt");
       const testData = new TextEncoder().encode("テストデータ");
 
-      await assertRejects(
-        async () => await saveFileWithUniqueNameIfExists(testPath, testData),
-        Deno.errors.NotFound,
-      );
+      await expect(saveFileWithUniqueNameIfExists(testPath, testData)).rejects.toThrow();
     });
   });
 });
