@@ -142,6 +142,33 @@ export async function getConfigValues<K extends keyof Config>(
   return result as Pick<Config, K>;
 }
 
+/**
+ * APIキーのフォーマットを検証
+ * @returns エラーメッセージ（有効な場合はnull）
+ */
+export function validateApiKeyFormat(apiKey: string): string | null {
+  if (!apiKey || apiKey.trim().length === 0) {
+    return "APIキーが空です";
+  }
+
+  // Google API keyの基本的なフォーマットチェック
+  // 通常は"AIza"で始まり、39文字程度
+  if (apiKey.length < 20) {
+    return "APIキーが短すぎます";
+  }
+
+  if (apiKey.length > 100) {
+    return "APIキーが長すぎます";
+  }
+
+  // 基本的な文字種チェック（英数字、ハイフン、アンダースコアのみ）
+  if (!/^[A-Za-z0-9_-]+$/.test(apiKey)) {
+    return "APIキーに無効な文字が含まれています";
+  }
+
+  return null;
+}
+
 export async function getApiKey(): Promise<string> {
   // 環境変数を優先（GOOGLE_API_KEY → GEMINI_API_KEY）
   const envApiKey = process.env.GOOGLE_API_KEY || process.env.GEMINI_API_KEY;
@@ -149,12 +176,20 @@ export async function getApiKey(): Promise<string> {
     if (process.env.GOOGLE_API_KEY && process.env.GEMINI_API_KEY) {
       console.error("Both GOOGLE_API_KEY and GEMINI_API_KEY are set. Using GOOGLE_API_KEY.");
     }
+    const validationError = validateApiKeyFormat(envApiKey);
+    if (validationError) {
+      throw new Error(`無効なAPIキー (環境変数): ${validationError}`);
+    }
     return envApiKey;
   }
 
   // 設定ファイルを確認
   const config = await loadConfig();
   if (config?.googleApiKey) {
+    const validationError = validateApiKeyFormat(config.googleApiKey);
+    if (validationError) {
+      throw new Error(`無効なAPIキー (設定ファイル): ${validationError}`);
+    }
     return config.googleApiKey;
   }
 

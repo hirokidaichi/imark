@@ -2,7 +2,7 @@ import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { Command, Option } from "commander";
 import { getApiKey, loadConfig } from "../utils/config.js";
-import { saveFileWithUniqueNameIfExists } from "../utils/file.js";
+import { loadContextFile, saveFileWithUniqueNameIfExists } from "../utils/file.js";
 import { GeminiClient } from "../utils/gemini.js";
 import {
   ASPECT_RATIOS,
@@ -23,6 +23,8 @@ import {
 } from "../utils/imagefx.js";
 import { LogDestination, Logger, LogLevel } from "../utils/logger.js";
 import { NanoBananaClient, type NanoBananaEngine } from "../utils/nano-banana.js";
+import { createErrorOutput, createSuccessOutput, printJson } from "../utils/output.js";
+import { getPreset } from "../utils/preset.js";
 
 /**
  * 画像生成エンジンタイプ（Imagen4 + Nano Banana）
@@ -43,6 +45,9 @@ interface ImageOptions {
   quality?: number;
   debug: boolean;
   engine: GenEngine;
+  json: boolean;
+  dryRun: boolean;
+  preset?: string;
 }
 
 /**
@@ -51,18 +56,6 @@ interface ImageOptions {
 interface OutputPathInfo {
   path: string;
   format: ImageFormat;
-}
-
-async function loadContext(contextPath?: string): Promise<string> {
-  if (!contextPath) return "";
-  try {
-    return await fs.readFile(contextPath, "utf-8");
-  } catch (error: unknown) {
-    if (error instanceof Error) {
-      throw new Error(`コンテキストファイルの読み込みに失敗しました: ${error.message}`);
-    }
-    throw new Error(`コンテキストファイルの読み込みに失敗しました: ${String(error)}`);
-  }
 }
 
 function validateImageFormat(ext: string, specifiedFormat?: ImageFormat) {
@@ -146,6 +139,9 @@ export function imageCommand(): Command {
     )
     .option("-q, --quality <number>", "画像の品質 (1-100)", String(DEFAULT_OPTIONS.quality))
     .option("-d, --debug", "デバッグモード（生成されたプロンプトを表示）", false)
+    .option("--json", "JSON形式で出力", false)
+    .option("--dry-run", "実行せずに設定を確認", false)
+    .option("-p, --preset <name>", "プリセット名 (imark preset list で一覧表示)")
     .addOption(
       new Option(
         "-e, --engine <engine>",
@@ -158,17 +154,78 @@ export function imageCommand(): Command {
         process.exit(1);
       }
 
+      // プリセット適用
+      let presetEngine: string | undefined;
+      let presetFormat: string | undefined;
+      let presetAspectRatio: string | undefined;
+      let presetType: string | undefined;
+      let presetSize: string | undefined;
+      let presetQuality: number | undefined;
+
+      if (options.preset) {
+        const preset = await getPreset(options.preset);
+        if (!preset) {
+          const errorMsg = `プリセット '${options.preset}' が見つかりません。\nimark preset list で一覧を確認してください。`;
+          if (options.json) {
+            printJson(createErrorOutput("image", errorMsg, "PRESET_NOT_FOUND"));
+          } else {
+            console.error("エラー:", errorMsg);
+          }
+          process.exit(1);
+        }
+        presetEngine = preset.engine;
+        presetFormat = preset.format;
+        presetAspectRatio = preset.aspectRatio;
+        presetType = preset.type;
+        presetSize = preset.size;
+        presetQuality = preset.quality;
+      }
+
       // 設定ファイルからデフォルト値を読み込み
+      // 優先順位: コマンドラインオプション > プリセット > 設定ファイル > デフォルト
       const config = await loadConfig();
-      const effectiveEngine = (options.engine === "imagen4" && config?.defaultImageEngine)
-        ? config.defaultImageEngine
-        : options.engine;
-      const effectiveFormat = (options.format === DEFAULT_OPTIONS.format && config?.defaultImageFormat)
-        ? config.defaultImageFormat
-        : options.format;
-      const effectiveAspectRatio = (options.aspectRatio === DEFAULT_OPTIONS.aspectRatio && config?.defaultAspectRatio)
-        ? config.defaultAspectRatio
-        : options.aspectRatio;
+
+      const effectiveEngine = options.engine !== "imagen4"
+        ? options.engine
+        : presetEngine
+          ? presetEngine
+          : config?.defaultImageEngine
+            ? config.defaultImageEngine
+            : options.engine;
+
+      const effectiveFormat = options.format !== DEFAULT_OPTIONS.format
+        ? options.format
+        : presetFormat
+          ? presetFormat
+          : config?.defaultImageFormat
+            ? config.defaultImageFormat
+            : options.format;
+
+      const effectiveAspectRatio = options.aspectRatio !== DEFAULT_OPTIONS.aspectRatio
+        ? options.aspectRatio
+        : presetAspectRatio
+          ? presetAspectRatio
+          : config?.defaultAspectRatio
+            ? config.defaultAspectRatio
+            : options.aspectRatio;
+
+      const effectiveType = options.type !== DEFAULT_OPTIONS.type
+        ? options.type
+        : presetType
+          ? presetType
+          : options.type;
+
+      const effectiveSize = options.size !== DEFAULT_OPTIONS.size
+        ? options.size
+        : presetSize
+          ? presetSize
+          : options.size;
+
+      const effectiveQuality = options.quality
+        ? Number(options.quality)
+        : presetQuality
+          ? presetQuality
+          : DEFAULT_OPTIONS.quality;
 
       // ロガー設定
       Logger.setGlobalConfig({
@@ -182,9 +239,84 @@ export function imageCommand(): Command {
       if (isEditMode) {
         const engine = effectiveEngine as GenEngine;
         if (engine !== "nano-banana" && engine !== "nano-banana-pro") {
-          console.log("画像編集モードではNano Bananaエンジン (-e nano-banana) を使用してください");
+          const errorMsg = "画像編集モードではNano Bananaエンジン (-e nano-banana) を使用してください";
+          if (options.json) {
+            printJson(createErrorOutput("image", errorMsg, "INVALID_ENGINE"));
+          } else {
+            console.error("エラー:", errorMsg);
+          }
           process.exit(1);
         }
+
+        // 入力ファイルの存在確認
+        const inputPath = options.input!;
+        try {
+          await fs.access(inputPath);
+        } catch {
+          const errorMsg = `入力画像が見つかりません: ${inputPath}`;
+          if (options.json) {
+            printJson(createErrorOutput("image", errorMsg, "FILE_NOT_FOUND"));
+          } else {
+            console.error("エラー:", errorMsg);
+          }
+          process.exit(1);
+        }
+
+        // 入力ファイルの形式確認
+        const inputExt = path.extname(inputPath).toLowerCase().slice(1);
+        const validInputFormats = ["jpg", "jpeg", "png", "gif", "webp"];
+        if (!validInputFormats.includes(inputExt)) {
+          const errorMsg = `サポートされていない画像形式です: .${inputExt}\n対応形式: ${validInputFormats.join(", ")}`;
+          if (options.json) {
+            printJson(createErrorOutput("image", errorMsg, "INVALID_FORMAT"));
+          } else {
+            console.error("エラー:", errorMsg);
+          }
+          process.exit(1);
+        }
+      }
+
+      // dry-runモード
+      if (options.dryRun) {
+        const mode = isEditMode ? "edit" : "generate";
+        const dryRunInfo = {
+          mode,
+          theme,
+          engine: effectiveEngine,
+          format: effectiveFormat,
+          aspectRatio: effectiveAspectRatio,
+          type: effectiveType,
+          size: effectiveSize,
+          quality: effectiveQuality,
+          output: options.output || `(自動生成).${effectiveFormat}`,
+          ...(options.preset ? { preset: options.preset } : {}),
+          ...(isEditMode ? { input: options.input } : {}),
+          ...(options.context ? { context: options.context } : {}),
+        };
+
+        if (options.json) {
+          printJson(createSuccessOutput("image", { dryRun: true, ...dryRunInfo }));
+        } else {
+          console.log("\n[DRY-RUN] 画像" + (isEditMode ? "編集" : "生成"));
+          console.log("  テーマ:", theme);
+          if (options.preset) {
+            console.log("  プリセット:", options.preset);
+          }
+          console.log("  エンジン:", effectiveEngine);
+          console.log("  フォーマット:", effectiveFormat);
+          console.log("  アスペクト比:", effectiveAspectRatio);
+          console.log("  タイプ:", effectiveType);
+          console.log("  サイズ:", effectiveSize);
+          if (isEditMode) {
+            console.log("  入力画像:", options.input);
+          }
+          if (options.context) {
+            console.log("  コンテキスト:", options.context);
+          }
+          console.log("  出力先:", options.output || `(自動生成).${effectiveFormat}`);
+          console.log("\nAPIは呼び出されません。実行するには --dry-run を外してください。");
+        }
+        return;
       }
 
       try {
@@ -211,7 +343,7 @@ export function imageCommand(): Command {
           }
         } else if (engine === "nano-banana" || engine === "nano-banana-pro") {
           // Nano Banana: 直接ユーザー入力を使用（Geminiが日本語を理解できるため）
-          const context = await loadContext(options.context);
+          const context = await loadContextFile(options.context);
           const directPrompt = context ? `${theme}\n\nコンテキスト:\n${context}` : theme;
 
           if (options.debug) {
@@ -228,26 +360,26 @@ export function imageCommand(): Command {
           imageData = result.imageData;
         } else {
           // Imagen 4: プロンプト生成を経由
-          const context = await loadContext(options.context);
+          const context = await loadContextFile(options.context);
           const prompt = await geminiClient.generatePrompt(theme, context, {
-            type: options.type as ImageType,
+            type: effectiveType as ImageType,
           });
 
           if (options.debug) {
             await logger.debug("生成されたプロンプト", {
               prompt,
-              type: options.type,
+              type: effectiveType,
               theme,
             });
           }
 
           const imagefxClient = new ImageFXClient(apiKey);
           const imagefxOptions: ImageFXClientOptions = {
-            size: options.size as SizePreset,
+            size: effectiveSize as SizePreset,
             aspectRatio: effectiveAspectRatio as AspectRatio,
-            type: options.type as ImageType,
+            type: effectiveType as ImageType,
             format: effectiveFormat as ImageFormat,
-            quality: options.quality ? Number(options.quality) : DEFAULT_OPTIONS.quality,
+            quality: effectiveQuality,
             engine: engine as ImageEngine,
           };
           imageData = await imagefxClient.generateImage(prompt, imagefxOptions);
@@ -273,22 +405,47 @@ export function imageCommand(): Command {
         await logger.info(logMessage, {
           path: finalOutputPath,
           format,
-          type: options.type,
-          size: options.size,
+          type: effectiveType,
+          size: effectiveSize,
           aspectRatio: effectiveAspectRatio,
           engine: effectiveEngine,
+          ...(options.preset ? { preset: options.preset } : {}),
           ...(isEditMode ? { input: options.input } : {}),
         });
 
-        console.log(`${logMessage}: ${finalOutputPath}`);
+        if (options.json) {
+          printJson(
+            createSuccessOutput("image", {
+              path: finalOutputPath,
+              format,
+              type: effectiveType,
+              size: effectiveSize,
+              aspectRatio: effectiveAspectRatio,
+              engine: effectiveEngine,
+              mode: isEditMode ? "edit" : "generate",
+              ...(options.preset ? { preset: options.preset } : {}),
+              ...(isEditMode ? { input: options.input } : {}),
+            })
+          );
+        } else {
+          console.log(`${logMessage}: ${finalOutputPath}`);
+        }
       } catch (error: unknown) {
         if (error instanceof Error) {
           const errorMessage = isEditMode ? "画像編集に失敗しました" : "画像生成に失敗しました";
           await logger.error(errorMessage, { error: error.message });
-          console.error("エラー:", error.message);
+          if (options.json) {
+            printJson(createErrorOutput("image", error.message));
+          } else {
+            console.error("エラー:", error.message);
+          }
         } else {
           await logger.error("不明なエラーが発生しました");
-          console.error("不明なエラーが発生しました");
+          if (options.json) {
+            printJson(createErrorOutput("image", "不明なエラーが発生しました"));
+          } else {
+            console.error("不明なエラーが発生しました");
+          }
         }
         process.exit(1);
       }

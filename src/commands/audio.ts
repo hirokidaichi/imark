@@ -4,6 +4,7 @@ import { getApiKey, loadConfig } from "../utils/config.js";
 import { saveFileWithUniqueNameIfExists } from "../utils/file.js";
 import { GeminiClient } from "../utils/gemini.js";
 import { LogDestination, Logger, LogLevel } from "../utils/logger.js";
+import { createErrorOutput, createSuccessOutput, printJson } from "../utils/output.js";
 import {
   DEFAULT_TTS_OPTIONS,
   TTS_FORMATS,
@@ -25,6 +26,8 @@ interface AudioOptions {
   format: TTSFormat;
   speed: string;
   debug: boolean;
+  json: boolean;
+  dryRun: boolean;
 }
 
 export function audioCommand(): Command {
@@ -51,6 +54,8 @@ export function audioCommand(): Command {
       new Option("--speed <speed>", "話速 (0.25-4.0)").default(String(DEFAULT_TTS_OPTIONS.speed))
     )
     .option("--debug", "デバッグモード", false)
+    .option("--json", "JSON形式で出力", false)
+    .option("--dry-run", "実行せずに設定を確認", false)
     .action(async (text: string, options: AudioOptions) => {
       if (!text) {
         console.log("テキストを指定してください");
@@ -72,6 +77,32 @@ export function audioCommand(): Command {
         minLevel: options.debug ? LogLevel.DEBUG : LogLevel.INFO,
       });
       const logger = Logger.getInstance({ name: "audio" });
+
+      // dry-runモード
+      if (options.dryRun) {
+        const dryRunInfo = {
+          text: text.length > 100 ? text.substring(0, 100) + "..." : text,
+          voice: effectiveVoice,
+          language: options.lang,
+          format: effectiveFormat,
+          speed: options.speed,
+          output: options.output || `(自動生成).${effectiveFormat}`,
+        };
+
+        if (options.json) {
+          printJson(createSuccessOutput("audio", { dryRun: true, ...dryRunInfo }));
+        } else {
+          console.log("\n[DRY-RUN] 音声生成");
+          console.log("  テキスト:", dryRunInfo.text);
+          console.log("  音声:", effectiveVoice);
+          console.log("  言語:", options.lang);
+          console.log("  フォーマット:", effectiveFormat);
+          console.log("  話速:", options.speed);
+          console.log("  出力先:", options.output || `(自動生成).${effectiveFormat}`);
+          console.log("\nAPIは呼び出されません。実行するには --dry-run を外してください。");
+        }
+        return;
+      }
 
       try {
         const apiKey = await getApiKey();
@@ -140,14 +171,34 @@ export function audioCommand(): Command {
           speed,
         });
 
-        console.log(`音声を生成しました: ${finalOutputPath}`);
+        if (options.json) {
+          printJson(
+            createSuccessOutput("audio", {
+              path: finalOutputPath,
+              voice: effectiveVoice,
+              language: options.lang,
+              format: effectiveFormat,
+              speed,
+            })
+          );
+        } else {
+          console.log(`音声を生成しました: ${finalOutputPath}`);
+        }
       } catch (error: unknown) {
         if (error instanceof Error) {
           await logger.error("音声生成に失敗しました", { error: error.message });
-          console.error("エラー:", error.message);
+          if (options.json) {
+            printJson(createErrorOutput("audio", error.message));
+          } else {
+            console.error("エラー:", error.message);
+          }
         } else {
           await logger.error("不明なエラーが発生しました");
-          console.error("不明なエラーが発生しました");
+          if (options.json) {
+            printJson(createErrorOutput("audio", "不明なエラーが発生しました"));
+          } else {
+            console.error("不明なエラーが発生しました");
+          }
         }
         process.exit(1);
       }

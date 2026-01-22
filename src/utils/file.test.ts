@@ -2,7 +2,12 @@ import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { generateUniqueFilePath, saveFileWithUniqueNameIfExists } from "./file.js";
+import {
+  fileExists,
+  generateUniqueFilePath,
+  loadContextFile,
+  saveFileWithUniqueNameIfExists,
+} from "./file.js";
 
 describe("ファイル操作ユーティリティのテスト", () => {
   // テスト用の一時ディレクトリのパス
@@ -120,6 +125,44 @@ describe("ファイル操作ユーティリティのテスト", () => {
       const testData = new TextEncoder().encode("テストデータ");
 
       await expect(saveFileWithUniqueNameIfExists(testPath, testData)).rejects.toThrow();
+    });
+  });
+
+  describe("loadContextFile", () => {
+    it("パスがundefinedの場合は空文字列を返す", async () => {
+      const result = await loadContextFile(undefined);
+      expect(result).toBe("");
+    });
+
+    it("ファイルが存在する場合はその内容を返す", async () => {
+      const testPath = path.join(tempDirPath, "context.txt");
+      const content = "これはコンテキストです";
+      await fs.writeFile(testPath, content, "utf-8");
+
+      const result = await loadContextFile(testPath);
+      expect(result).toBe(content);
+    });
+
+    it("ファイルが存在しない場合はエラーをスロー", async () => {
+      const testPath = path.join(tempDirPath, "nonexistent.txt");
+      await expect(loadContextFile(testPath)).rejects.toThrow("コンテキストファイルが見つかりません");
+    });
+  });
+
+  describe("fileExists", () => {
+    it("ファイルが存在する場合はtrueを返す", async () => {
+      const testPath = path.join(tempDirPath, "exists.txt");
+      await fs.writeFile(testPath, "test");
+
+      const result = await fileExists(testPath);
+      expect(result).toBe(true);
+    });
+
+    it("ファイルが存在しない場合はfalseを返す", async () => {
+      const testPath = path.join(tempDirPath, "not_exists.txt");
+
+      const result = await fileExists(testPath);
+      expect(result).toBe(false);
     });
   });
 });

@@ -61,3 +61,41 @@ export async function saveFileWithUniqueNameIfExists(
   await fs.writeFile(finalOutputPath, data);
   return finalOutputPath;
 }
+
+/**
+ * コンテキストファイルを読み込みます
+ * ファイルが存在しない場合や読み込みに失敗した場合はエラーをスローします
+ *
+ * @param contextPath コンテキストファイルのパス（undefined の場合は空文字列を返す）
+ * @returns ファイルの内容（UTF-8）
+ */
+export async function loadContextFile(contextPath?: string): Promise<string> {
+  if (!contextPath) return "";
+
+  try {
+    return await fs.readFile(contextPath, "utf-8");
+  } catch (error: unknown) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      throw new Error(`コンテキストファイルが見つかりません: ${contextPath}`);
+    }
+    if (error instanceof Error) {
+      throw new Error(`コンテキストファイルの読み込みに失敗しました: ${error.message}`);
+    }
+    throw new Error(`コンテキストファイルの読み込みに失敗しました: ${String(error)}`);
+  }
+}
+
+/**
+ * ファイルが存在するかどうかを確認します
+ *
+ * @param filePath ファイルパス
+ * @returns ファイルが存在する場合は true
+ */
+export async function fileExists(filePath: string): Promise<boolean> {
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}

@@ -4,6 +4,7 @@ import { configureCommand } from "./configure.js";
 import { explainCommand } from "./explain.js";
 import { imageCommand } from "./image.js";
 import { logCommand } from "./log.js";
+import { presetCommand } from "./preset.js";
 import { videoCommand } from "./video.js";
 
 export function createMainCommand(): Command {
@@ -12,7 +13,7 @@ export function createMainCommand(): Command {
     .version("0.3.0")
     .description("AI画像・動画・音声生成ツール")
     .action(() => {
-      console.log("サブコマンドを指定してください: image, video, audio, explain, configure, log");
+      console.log("サブコマンドを指定してください: image, video, audio, explain, preset, configure, log");
       process.exit(1);
     });
 
@@ -25,6 +26,7 @@ export function createMainCommand(): Command {
   program.addCommand(explainCommand());
 
   // ユーティリティ
+  program.addCommand(presetCommand());
   program.addCommand(configureCommand());
   program.addCommand(logCommand());
 

@@ -7,6 +7,7 @@ import {
   getConfigPath,
   loadConfig,
   saveConfig,
+  validateApiKeyFormat,
 } from "../utils/config.js";
 
 type ConfigMenuItem = "apiKey" | "defaults" | "show" | "reset" | "exit";
@@ -161,6 +162,10 @@ async function configureApiKey(): Promise<void> {
       name: "apiKey",
       message: "Google APIキーを入力してください:",
       mask: "*",
+      validate: (input: string) => {
+        const error = validateApiKeyFormat(input);
+        return error ? error : true;
+      },
     },
   ]);
 
