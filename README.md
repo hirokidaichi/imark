@@ -153,6 +153,7 @@ AIを使用して画像を生成します（Imagen 4 / Nano Banana）。
 imark image [options] <theme>
 
 オプション：
+  -i, --input <file>      入力画像（画像編集モード、Nano Banana専用）
   -s, --size <size>       画像サイズ（tiny, hd, fullhd, 2k, 4k）
   -t, --type <type>       画像スタイル（realistic, illustration, flat, anime, watercolor, oil-painting, pixel-art, sketch, 3d-render, corporate, minimal, pop-art）
   -a, --aspect-ratio <ratio>  アスペクト比（16:9, 4:3, 1:1, 9:16, 3:4）
@@ -161,6 +162,23 @@ imark image [options] <theme>
   -o, --output <path>     出力パス（ファイルまたはディレクトリ）
   -d, --debug             デバッグモード
 ```
+
+##### 画像編集モード（Nano Banana専用）
+
+`--input` オプションを使用すると、既存の画像を編集できます：
+
+```bash
+# 画像を白黒に変換
+imark image "白黒にして" -i photo.jpg -e nano-banana
+
+# 画像のスタイルを変更
+imark image "油絵風にして" -i landscape.png -e nano-banana
+
+# 画像から要素を削除
+imark image "背景の人物を消して" -i photo.jpg -e nano-banana -o edited.jpg
+```
+
+> **Note:** 画像編集モードは Nano Banana エンジン（`-e nano-banana` または `-e nano-banana-pro`）でのみ利用可能です。
 
 #### videoコマンド
 
@@ -261,6 +279,78 @@ imark image "$(imark caption samples/beautiful-mountain-landscape-snow-peaks-.we
 | ![original](samples/beautiful-mountain-landscape-snow-peaks-.webp) | ![pixel-art](samples/matterhorn-sunset-swiss-alps-landscape-h.webp) |
 
 このように、キャプションを介して画像の内容を保持しながら、異なる表現スタイルで再生成することができます。
+
+## 設定とログ
+
+### 設定ファイル
+
+imarkの設定は以下の場所に保存されます：
+
+```
+~/.imark/config.json
+```
+
+設定ファイルの内容：
+```json
+{
+  "apiKey": "your-google-api-key"
+}
+```
+
+### 環境変数
+
+APIキーは環境変数でも設定できます（設定ファイルより優先）：
+
+```bash
+export GOOGLE_API_KEY="your-api-key"
+# または
+export GEMINI_API_KEY="your-api-key"
+```
+
+### ログファイル
+
+操作ログは以下の場所に保存されます：
+
+```
+~/.imark/logs/
+```
+
+ログは `imark log` コマンドで確認できます。
+
+## トラブルシューティング
+
+### APIキーが設定されていません
+
+```
+エラー: GOOGLE_API_KEYが設定されていません
+```
+
+**解決方法:**
+1. `imark configure` を実行してAPIキーを設定
+2. または環境変数 `GOOGLE_API_KEY` を設定
+
+### 画像編集モードでエラー
+
+```
+画像編集モードではNano Bananaエンジンを使用してください
+```
+
+**解決方法:**
+画像編集（`--input` オプション）は Nano Banana でのみ利用可能です：
+```bash
+imark image "編集内容" -i input.jpg -e nano-banana
+```
+
+### モデルが見つからない
+
+```
+models/xxx is not found
+```
+
+**解決方法:**
+- APIキーが有効か確認
+- Google AI Studio でAPIが有効化されているか確認
+- 利用可能なモデルはリージョンによって異なる場合があります
 
 ## 開発者向け情報
 
