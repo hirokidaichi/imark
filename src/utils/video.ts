@@ -35,12 +35,13 @@ export interface VideoGenerationOptions {
   duration?: number; // 秒数 (5-8秒)
   resolution?: VideoResolution;
   aspectRatio?: VideoAspectRatio;
+  inputImage?: string; // 入力画像のパス（image-to-video）
 }
 
 /**
  * デフォルトの動画生成オプション
  */
-export const DEFAULT_VIDEO_OPTIONS: Required<VideoGenerationOptions> = {
+export const DEFAULT_VIDEO_OPTIONS: Required<Omit<VideoGenerationOptions, "inputImage">> = {
   engine: "veo-3.1",
   duration: 8,
   resolution: "1080p",
@@ -81,9 +82,11 @@ export class VideoClient {
       engine = DEFAULT_VIDEO_OPTIONS.engine,
       duration = DEFAULT_VIDEO_OPTIONS.duration,
       aspectRatio = DEFAULT_VIDEO_OPTIONS.aspectRatio,
+      inputImage,
     } = options;
 
     const modelId = VIDEO_ENGINE_MODEL_IDS[engine];
+    const isImageToVideo = !!inputImage;
 
     this.logger.debug("=== Video Generation Debug Info ===");
     this.logger.debug(`Prompt: ${prompt}`);
@@ -91,18 +94,54 @@ export class VideoClient {
     this.logger.debug(`Model ID: ${modelId}`);
     this.logger.debug(`Duration: ${duration}秒`);
     this.logger.debug(`Aspect Ratio: ${aspectRatio}`);
+    this.logger.debug(`Mode: ${isImageToVideo ? "image-to-video" : "text-to-video"}`);
+    if (inputImage) {
+      this.logger.debug(`Input Image: ${inputImage}`);
+    }
     this.logger.debug("===================================");
 
     try {
+      // 画像入力がある場合は読み込む
+      let imageData: { data: string; mimeType: string } | undefined;
+      if (inputImage) {
+        const imageBuffer = await fs.readFile(inputImage);
+        const base64Data = imageBuffer.toString("base64");
+        const ext = inputImage.toLowerCase().split(".").pop();
+        const mimeTypeMap: Record<string, string> = {
+          jpg: "image/jpeg",
+          jpeg: "image/jpeg",
+          png: "image/png",
+          gif: "image/gif",
+          webp: "image/webp",
+        };
+        const mimeType = mimeTypeMap[ext || ""] || "image/jpeg";
+        imageData = { data: base64Data, mimeType };
+      }
+
       // 動画生成をリクエスト
-      let operation = await this.ai.models.generateVideos({
+      const requestParams: {
+        model: string;
+        prompt: string;
+        config: { aspectRatio: string; durationSeconds: number };
+        image?: { imageBytes: string; mimeType: string };
+      } = {
         model: modelId,
         prompt,
         config: {
           aspectRatio,
           durationSeconds: duration,
         },
-      });
+      };
+
+      // 画像入力がある場合は追加
+      if (imageData) {
+        requestParams.image = {
+          imageBytes: imageData.data,
+          mimeType: imageData.mimeType,
+        };
+      }
+
+      let operation = await this.ai.models.generateVideos(requestParams);
 
       // 生成完了を待機
       this.logger.info("動画生成を開始しました。完了まで待機中...");

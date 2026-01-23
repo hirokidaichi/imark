@@ -1,3 +1,4 @@
+import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { Command, Option } from "commander";
 import { getApiKey } from "../../utils/config.js";
@@ -17,6 +18,7 @@ import {
  * 動画生成コマンドのオプション
  */
 interface GenOptions {
+  input?: string;
   output?: string;
   duration: string;
   resolution: VideoResolution;
@@ -34,6 +36,7 @@ export function videoGenCommand(): Command {
   return new Command("gen")
     .description("動画を生成します (Veo 3.1)")
     .argument("<theme>", "動画生成のテーマ")
+    .option("-i, --input <file>", "入力画像のパス（image-to-video）")
     .option("-o, --output <path>", "出力パス（ファイルまたはディレクトリ）")
     .addOption(
       new Option("-d, --duration <seconds>", "動画の長さ（秒、5-8）").default(
@@ -72,22 +75,56 @@ export function videoGenCommand(): Command {
       // エンジン選択
       const engine: VideoEngine = options.fast ? "veo-3.1-fast" : "veo-3.1";
       const duration = parseInt(options.duration, 10);
+      const isImageToVideo = !!options.input;
+
+      // 入力画像の検証
+      if (options.input) {
+        try {
+          await fs.access(options.input);
+        } catch {
+          const errorMsg = `入力画像が見つかりません: ${options.input}`;
+          if (options.json) {
+            printJson(createErrorOutput("video gen", errorMsg, "FILE_NOT_FOUND"));
+          } else {
+            console.error("エラー:", errorMsg);
+          }
+          process.exit(1);
+        }
+
+        const inputExt = path.extname(options.input).toLowerCase().slice(1);
+        const validInputFormats = ["jpg", "jpeg", "png", "gif", "webp"];
+        if (!validInputFormats.includes(inputExt)) {
+          const errorMsg = `サポートされていない画像形式です: .${inputExt}\n対応形式: ${validInputFormats.join(", ")}`;
+          if (options.json) {
+            printJson(createErrorOutput("video gen", errorMsg, "INVALID_FORMAT"));
+          } else {
+            console.error("エラー:", errorMsg);
+          }
+          process.exit(1);
+        }
+      }
 
       // dry-runモード
       if (options.dryRun) {
         const dryRunInfo = {
+          mode: isImageToVideo ? "image-to-video" : "text-to-video",
           theme,
           engine,
           duration: options.duration,
           resolution: options.resolution,
           aspectRatio: options.aspectRatio,
           output: options.output || "(自動生成).mp4",
+          ...(options.input ? { input: options.input } : {}),
         };
 
         if (options.json) {
           printJson(createSuccessOutput("video gen", { dryRun: true, ...dryRunInfo }));
         } else {
           console.log("\n[DRY-RUN] 動画生成");
+          console.log("  モード:", isImageToVideo ? "image-to-video" : "text-to-video");
+          if (options.input) {
+            console.log("  入力画像:", options.input);
+          }
           console.log("  テーマ:", theme);
           console.log("  エンジン:", engine);
           console.log("  長さ:", options.duration, "秒");
@@ -105,7 +142,8 @@ export function videoGenCommand(): Command {
         const videoClient = new VideoClient(apiKey);
 
         // 動画生成
-        console.log(`動画を生成しています... (エンジン: ${engine})`);
+        const modeLabel = isImageToVideo ? "image-to-video" : "text-to-video";
+        console.log(`動画を生成しています... (エンジン: ${engine}, モード: ${modeLabel})`);
         console.log("※ 動画生成には数分かかる場合があります");
 
         if (isNaN(duration) || duration < 5 || duration > 8) {
@@ -117,6 +155,7 @@ export function videoGenCommand(): Command {
           duration,
           resolution: options.resolution,
           aspectRatio: options.aspectRatio,
+          inputImage: options.input,
         });
 
         // ファイル名生成
@@ -148,6 +187,8 @@ export function videoGenCommand(): Command {
           duration,
           resolution: options.resolution,
           aspectRatio: options.aspectRatio,
+          mode: isImageToVideo ? "image-to-video" : "text-to-video",
+          ...(options.input ? { input: options.input } : {}),
         });
 
         if (options.json) {
@@ -158,6 +199,8 @@ export function videoGenCommand(): Command {
               duration,
               resolution: options.resolution,
               aspectRatio: options.aspectRatio,
+              mode: isImageToVideo ? "image-to-video" : "text-to-video",
+              ...(options.input ? { input: options.input } : {}),
             })
           );
         } else {
