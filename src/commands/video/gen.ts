@@ -1,22 +1,22 @@
 import * as path from "node:path";
 import { Command, Option } from "commander";
-import { getApiKey } from "../utils/config.js";
-import { saveFileWithUniqueNameIfExists } from "../utils/file.js";
-import { GeminiClient } from "../utils/gemini.js";
-import { LogDestination, Logger, LogLevel } from "../utils/logger.js";
-import { createErrorOutput, createSuccessOutput, printJson } from "../utils/output.js";
+import { getApiKey } from "../../utils/config.js";
+import { saveFileWithUniqueNameIfExists } from "../../utils/file.js";
+import { GeminiClient } from "../../utils/gemini.js";
+import { LogDestination, Logger, LogLevel } from "../../utils/logger.js";
+import { createErrorOutput, createSuccessOutput, printJson } from "../../utils/output.js";
 import {
   DEFAULT_VIDEO_OPTIONS,
   type VideoAspectRatio,
   VideoClient,
   type VideoEngine,
   type VideoResolution,
-} from "../utils/video.js";
+} from "../../utils/video.js";
 
 /**
  * 動画生成コマンドのオプション
  */
-interface VideoOptions {
+interface GenOptions {
   output?: string;
   duration: string;
   resolution: VideoResolution;
@@ -27,11 +27,11 @@ interface VideoOptions {
   dryRun: boolean;
 }
 
-export function videoCommand(): Command {
+export function videoGenCommand(): Command {
   const resolutionChoices: VideoResolution[] = ["720p", "1080p"];
   const aspectRatioChoices: VideoAspectRatio[] = ["16:9", "9:16"];
 
-  return new Command("video")
+  return new Command("gen")
     .description("動画を生成します (Veo 3.1)")
     .argument("<theme>", "動画生成のテーマ")
     .option("-o, --output <path>", "出力パス（ファイルまたはディレクトリ）")
@@ -56,7 +56,7 @@ export function videoCommand(): Command {
     .option("--debug", "デバッグモード", false)
     .option("--json", "JSON形式で出力", false)
     .option("--dry-run", "実行せずに設定を確認", false)
-    .action(async (theme: string, options: VideoOptions) => {
+    .action(async (theme: string, options: GenOptions) => {
       if (!theme) {
         console.log("テーマを指定してください");
         process.exit(1);
@@ -67,9 +67,9 @@ export function videoCommand(): Command {
         destination: LogDestination.BOTH,
         minLevel: options.debug ? LogLevel.DEBUG : LogLevel.INFO,
       });
-      const logger = Logger.getInstance({ name: "video" });
+      const logger = Logger.getInstance({ name: "video-gen" });
 
-      // エンジン選択（dry-run用に事前に決定）
+      // エンジン選択
       const engine: VideoEngine = options.fast ? "veo-3.1-fast" : "veo-3.1";
       const duration = parseInt(options.duration, 10);
 
@@ -85,7 +85,7 @@ export function videoCommand(): Command {
         };
 
         if (options.json) {
-          printJson(createSuccessOutput("video", { dryRun: true, ...dryRunInfo }));
+          printJson(createSuccessOutput("video gen", { dryRun: true, ...dryRunInfo }));
         } else {
           console.log("\n[DRY-RUN] 動画生成");
           console.log("  テーマ:", theme);
@@ -152,7 +152,7 @@ export function videoCommand(): Command {
 
         if (options.json) {
           printJson(
-            createSuccessOutput("video", {
+            createSuccessOutput("video gen", {
               path: finalOutputPath,
               engine,
               duration,
@@ -167,14 +167,14 @@ export function videoCommand(): Command {
         if (error instanceof Error) {
           await logger.error("動画生成に失敗しました", { error: error.message });
           if (options.json) {
-            printJson(createErrorOutput("video", error.message));
+            printJson(createErrorOutput("video gen", error.message));
           } else {
             console.error("エラー:", error.message);
           }
         } else {
           await logger.error("不明なエラーが発生しました");
           if (options.json) {
-            printJson(createErrorOutput("video", "不明なエラーが発生しました"));
+            printJson(createErrorOutput("video gen", "不明なエラーが発生しました"));
           } else {
             console.error("不明なエラーが発生しました");
           }

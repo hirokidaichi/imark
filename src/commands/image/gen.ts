@@ -1,9 +1,9 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { Command, Option } from "commander";
-import { getApiKey, loadConfig } from "../utils/config.js";
-import { loadContextFile, saveFileWithUniqueNameIfExists } from "../utils/file.js";
-import { GeminiClient } from "../utils/gemini.js";
+import { getApiKey, loadConfig } from "../../utils/config.js";
+import { loadContextFile, saveFileWithUniqueNameIfExists } from "../../utils/file.js";
+import { GeminiClient } from "../../utils/gemini.js";
 import {
   ASPECT_RATIOS,
   type AspectRatio,
@@ -14,28 +14,21 @@ import {
   SIZE_PRESETS,
   type SizePreset,
   VALID_IMAGE_FORMATS,
-} from "../utils/image_constants.js";
+} from "../../utils/image_constants.js";
 import {
   ENGINE_MODEL_IDS,
   type ImageEngine,
   ImageFXClient,
   type ImageFXClientOptions,
-} from "../utils/imagefx.js";
-import { LogDestination, Logger, LogLevel } from "../utils/logger.js";
-import { NanoBananaClient, type NanoBananaEngine } from "../utils/nano-banana.js";
-import { createErrorOutput, createSuccessOutput, printJson } from "../utils/output.js";
-import { getPreset } from "../utils/preset.js";
-
-/**
- * 画像生成エンジンタイプ（Imagen4 + Nano Banana）
- */
-type GenEngine = ImageEngine | NanoBananaEngine;
+} from "../../utils/imagefx.js";
+import { LogDestination, Logger, LogLevel } from "../../utils/logger.js";
+import { createErrorOutput, createSuccessOutput, printJson } from "../../utils/output.js";
+import { getPreset } from "../../utils/preset.js";
 
 /**
  * 画像生成コマンドのオプション
  */
-interface ImageOptions {
-  input?: string;
+interface GenOptions {
   context?: string;
   output?: string;
   size: string;
@@ -44,7 +37,7 @@ interface ImageOptions {
   format: ImageFormat;
   quality?: number;
   debug: boolean;
-  engine: GenEngine;
+  engine: ImageEngine;
   json: boolean;
   dryRun: boolean;
   preset?: string;
@@ -102,16 +95,15 @@ async function resolveOutputPath(
   return { path: outputPath, format };
 }
 
-export function imageCommand(): Command {
+export function imageGenCommand(): Command {
   const sizeChoices = Object.keys(SIZE_PRESETS);
   const aspectRatioChoices = Object.keys(ASPECT_RATIOS);
   const typeChoices = Object.keys(IMAGE_TYPE_PROMPTS);
-  const engineChoices = [...Object.keys(ENGINE_MODEL_IDS), "nano-banana", "nano-banana-pro"];
+  const engineChoices = Object.keys(ENGINE_MODEL_IDS);
 
-  return new Command("image")
-    .description("画像を生成します (Imagen 4 / Nano Banana)")
-    .argument("<theme>", "画像生成のテーマ または 画像編集の指示")
-    .option("-i, --input <file>", "入力画像のパス（画像編集モード、Nano Banana専用）")
+  return new Command("gen")
+    .description("画像を生成します (Imagen 4)")
+    .argument("<theme>", "画像生成のテーマ")
     .option("-c, --context <file>", "コンテキストファイルのパス")
     .option("-o, --output <path>", "出力パス（ファイルまたはディレクトリ）")
     .addOption(
@@ -148,7 +140,7 @@ export function imageCommand(): Command {
         `画像生成エンジン (${engineChoices.join(" | ")})`
       ).default("imagen4")
     )
-    .action(async (theme: string, options: ImageOptions) => {
+    .action(async (theme: string, options: GenOptions) => {
       if (!theme) {
         console.log("テーマを指定してください");
         process.exit(1);
@@ -167,7 +159,7 @@ export function imageCommand(): Command {
         if (!preset) {
           const errorMsg = `プリセット '${options.preset}' が見つかりません。\nimark preset list で一覧を確認してください。`;
           if (options.json) {
-            printJson(createErrorOutput("image", errorMsg, "PRESET_NOT_FOUND"));
+            printJson(createErrorOutput("image gen", errorMsg, "PRESET_NOT_FOUND"));
           } else {
             console.error("エラー:", errorMsg);
           }
@@ -182,15 +174,14 @@ export function imageCommand(): Command {
       }
 
       // 設定ファイルからデフォルト値を読み込み
-      // 優先順位: コマンドラインオプション > プリセット > 設定ファイル > デフォルト
       const config = await loadConfig();
 
       const effectiveEngine = options.engine !== "imagen4"
         ? options.engine
-        : presetEngine
-          ? presetEngine
-          : config?.defaultImageEngine
-            ? config.defaultImageEngine
+        : presetEngine && !presetEngine.startsWith("nano-banana")
+          ? presetEngine as ImageEngine
+          : config?.defaultImageEngine && !config.defaultImageEngine.startsWith("nano-banana")
+            ? config.defaultImageEngine as ImageEngine
             : options.engine;
 
       const effectiveFormat = options.format !== DEFAULT_OPTIONS.format
@@ -232,55 +223,11 @@ export function imageCommand(): Command {
         destination: LogDestination.BOTH,
         minLevel: options.debug ? LogLevel.DEBUG : LogLevel.INFO,
       });
-      const logger = Logger.getInstance({ name: "image" });
-
-      // 画像編集モードの場合はNano Bananaエンジンを強制
-      const isEditMode = !!options.input;
-      if (isEditMode) {
-        const engine = effectiveEngine as GenEngine;
-        if (engine !== "nano-banana" && engine !== "nano-banana-pro") {
-          const errorMsg = "画像編集モードではNano Bananaエンジン (-e nano-banana) を使用してください";
-          if (options.json) {
-            printJson(createErrorOutput("image", errorMsg, "INVALID_ENGINE"));
-          } else {
-            console.error("エラー:", errorMsg);
-          }
-          process.exit(1);
-        }
-
-        // 入力ファイルの存在確認
-        const inputPath = options.input!;
-        try {
-          await fs.access(inputPath);
-        } catch {
-          const errorMsg = `入力画像が見つかりません: ${inputPath}`;
-          if (options.json) {
-            printJson(createErrorOutput("image", errorMsg, "FILE_NOT_FOUND"));
-          } else {
-            console.error("エラー:", errorMsg);
-          }
-          process.exit(1);
-        }
-
-        // 入力ファイルの形式確認
-        const inputExt = path.extname(inputPath).toLowerCase().slice(1);
-        const validInputFormats = ["jpg", "jpeg", "png", "gif", "webp"];
-        if (!validInputFormats.includes(inputExt)) {
-          const errorMsg = `サポートされていない画像形式です: .${inputExt}\n対応形式: ${validInputFormats.join(", ")}`;
-          if (options.json) {
-            printJson(createErrorOutput("image", errorMsg, "INVALID_FORMAT"));
-          } else {
-            console.error("エラー:", errorMsg);
-          }
-          process.exit(1);
-        }
-      }
+      const logger = Logger.getInstance({ name: "image-gen" });
 
       // dry-runモード
       if (options.dryRun) {
-        const mode = isEditMode ? "edit" : "generate";
         const dryRunInfo = {
-          mode,
           theme,
           engine: effectiveEngine,
           format: effectiveFormat,
@@ -290,14 +237,13 @@ export function imageCommand(): Command {
           quality: effectiveQuality,
           output: options.output || `(自動生成).${effectiveFormat}`,
           ...(options.preset ? { preset: options.preset } : {}),
-          ...(isEditMode ? { input: options.input } : {}),
           ...(options.context ? { context: options.context } : {}),
         };
 
         if (options.json) {
-          printJson(createSuccessOutput("image", { dryRun: true, ...dryRunInfo }));
+          printJson(createSuccessOutput("image gen", { dryRun: true, ...dryRunInfo }));
         } else {
-          console.log("\n[DRY-RUN] 画像" + (isEditMode ? "編集" : "生成"));
+          console.log("\n[DRY-RUN] 画像生成");
           console.log("  テーマ:", theme);
           if (options.preset) {
             console.log("  プリセット:", options.preset);
@@ -307,9 +253,6 @@ export function imageCommand(): Command {
           console.log("  アスペクト比:", effectiveAspectRatio);
           console.log("  タイプ:", effectiveType);
           console.log("  サイズ:", effectiveSize);
-          if (isEditMode) {
-            console.log("  入力画像:", options.input);
-          }
           if (options.context) {
             console.log("  コンテキスト:", options.context);
           }
@@ -323,67 +266,30 @@ export function imageCommand(): Command {
         const apiKey = await getApiKey();
         const geminiClient = new GeminiClient(apiKey);
 
-        let imageData: Uint8Array;
-        const engine = effectiveEngine as GenEngine;
+        // Imagen 4: プロンプト生成を経由
+        const context = await loadContextFile(options.context);
+        const prompt = await geminiClient.generatePrompt(theme, context, {
+          type: effectiveType as ImageType,
+        });
 
-        if (isEditMode) {
-          // 画像編集モード
-          const nanoBananaClient = new NanoBananaClient(apiKey);
-          const result = await nanoBananaClient.editImage(options.input!, theme, {
-            engine: engine as NanoBananaEngine,
+        if (options.debug) {
+          await logger.debug("生成されたプロンプト", {
+            prompt,
+            type: effectiveType,
+            theme,
           });
-          imageData = result.imageData;
-
-          if (options.debug) {
-            await logger.debug("画像編集モード", {
-              input: options.input,
-              prompt: theme,
-              engine: effectiveEngine,
-            });
-          }
-        } else if (engine === "nano-banana" || engine === "nano-banana-pro") {
-          // Nano Banana: 直接ユーザー入力を使用（Geminiが日本語を理解できるため）
-          const context = await loadContextFile(options.context);
-          const directPrompt = context ? `${theme}\n\nコンテキスト:\n${context}` : theme;
-
-          if (options.debug) {
-            await logger.debug("Nano Banana直接モード", {
-              prompt: directPrompt,
-              engine: effectiveEngine,
-            });
-          }
-
-          const nanoBananaClient = new NanoBananaClient(apiKey);
-          const result = await nanoBananaClient.generateImage(directPrompt, {
-            engine: engine as NanoBananaEngine,
-          });
-          imageData = result.imageData;
-        } else {
-          // Imagen 4: プロンプト生成を経由
-          const context = await loadContextFile(options.context);
-          const prompt = await geminiClient.generatePrompt(theme, context, {
-            type: effectiveType as ImageType,
-          });
-
-          if (options.debug) {
-            await logger.debug("生成されたプロンプト", {
-              prompt,
-              type: effectiveType,
-              theme,
-            });
-          }
-
-          const imagefxClient = new ImageFXClient(apiKey);
-          const imagefxOptions: ImageFXClientOptions = {
-            size: effectiveSize as SizePreset,
-            aspectRatio: effectiveAspectRatio as AspectRatio,
-            type: effectiveType as ImageType,
-            format: effectiveFormat as ImageFormat,
-            quality: effectiveQuality,
-            engine: engine as ImageEngine,
-          };
-          imageData = await imagefxClient.generateImage(prompt, imagefxOptions);
         }
+
+        const imagefxClient = new ImageFXClient(apiKey);
+        const imagefxOptions: ImageFXClientOptions = {
+          size: effectiveSize as SizePreset,
+          aspectRatio: effectiveAspectRatio as AspectRatio,
+          type: effectiveType as ImageType,
+          format: effectiveFormat as ImageFormat,
+          quality: effectiveQuality,
+          engine: effectiveEngine,
+        };
+        const imageData = await imagefxClient.generateImage(prompt, imagefxOptions);
 
         // ファイル名生成
         const fileName = await geminiClient.generateFileName(theme, {
@@ -401,8 +307,7 @@ export function imageCommand(): Command {
         // ファイル保存
         const finalOutputPath = await saveFileWithUniqueNameIfExists(outputPath, imageData);
 
-        const logMessage = isEditMode ? "画像を編集しました" : "画像を生成しました";
-        await logger.info(logMessage, {
+        await logger.info("画像を生成しました", {
           path: finalOutputPath,
           format,
           type: effectiveType,
@@ -410,39 +315,35 @@ export function imageCommand(): Command {
           aspectRatio: effectiveAspectRatio,
           engine: effectiveEngine,
           ...(options.preset ? { preset: options.preset } : {}),
-          ...(isEditMode ? { input: options.input } : {}),
         });
 
         if (options.json) {
           printJson(
-            createSuccessOutput("image", {
+            createSuccessOutput("image gen", {
               path: finalOutputPath,
               format,
               type: effectiveType,
               size: effectiveSize,
               aspectRatio: effectiveAspectRatio,
               engine: effectiveEngine,
-              mode: isEditMode ? "edit" : "generate",
               ...(options.preset ? { preset: options.preset } : {}),
-              ...(isEditMode ? { input: options.input } : {}),
             })
           );
         } else {
-          console.log(`${logMessage}: ${finalOutputPath}`);
+          console.log(`画像を生成しました: ${finalOutputPath}`);
         }
       } catch (error: unknown) {
         if (error instanceof Error) {
-          const errorMessage = isEditMode ? "画像編集に失敗しました" : "画像生成に失敗しました";
-          await logger.error(errorMessage, { error: error.message });
+          await logger.error("画像生成に失敗しました", { error: error.message });
           if (options.json) {
-            printJson(createErrorOutput("image", error.message));
+            printJson(createErrorOutput("image gen", error.message));
           } else {
             console.error("エラー:", error.message);
           }
         } else {
           await logger.error("不明なエラーが発生しました");
           if (options.json) {
-            printJson(createErrorOutput("image", "不明なエラーが発生しました"));
+            printJson(createErrorOutput("image gen", "不明なエラーが発生しました"));
           } else {
             console.error("不明なエラーが発生しました");
           }

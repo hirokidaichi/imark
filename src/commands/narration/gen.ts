@@ -1,10 +1,10 @@
 import * as path from "node:path";
 import { Command, Option } from "commander";
-import { getApiKey, loadConfig } from "../utils/config.js";
-import { saveFileWithUniqueNameIfExists } from "../utils/file.js";
-import { GeminiClient } from "../utils/gemini.js";
-import { LogDestination, Logger, LogLevel } from "../utils/logger.js";
-import { createErrorOutput, createSuccessOutput, printJson } from "../utils/output.js";
+import { getApiKey, loadConfig } from "../../utils/config.js";
+import { saveFileWithUniqueNameIfExists } from "../../utils/file.js";
+import { GeminiClient } from "../../utils/gemini.js";
+import { LogDestination, Logger, LogLevel } from "../../utils/logger.js";
+import { createErrorOutput, createSuccessOutput, printJson } from "../../utils/output.js";
 import {
   DEFAULT_TTS_OPTIONS,
   TTS_FORMATS,
@@ -14,12 +14,12 @@ import {
   type TTSFormat,
   type TTSLanguage,
   type TTSVoice,
-} from "../utils/tts.js";
+} from "../../utils/tts.js";
 
 /**
  * 音声生成コマンドのオプション
  */
-interface AudioOptions {
+interface GenOptions {
   output?: string;
   voice: TTSVoice;
   lang: TTSLanguage;
@@ -30,9 +30,9 @@ interface AudioOptions {
   dryRun: boolean;
 }
 
-export function audioCommand(): Command {
-  return new Command("audio")
-    .description("音声を生成します (TTS)")
+export function narrationGenCommand(): Command {
+  return new Command("gen")
+    .description("音声ナレーションを生成します (TTS)")
     .argument("<text>", "読み上げるテキスト")
     .option("-o, --output <path>", "出力パス（ファイルまたはディレクトリ）")
     .addOption(
@@ -56,7 +56,7 @@ export function audioCommand(): Command {
     .option("--debug", "デバッグモード", false)
     .option("--json", "JSON形式で出力", false)
     .option("--dry-run", "実行せずに設定を確認", false)
-    .action(async (text: string, options: AudioOptions) => {
+    .action(async (text: string, options: GenOptions) => {
       if (!text) {
         console.log("テキストを指定してください");
         process.exit(1);
@@ -76,7 +76,7 @@ export function audioCommand(): Command {
         destination: LogDestination.BOTH,
         minLevel: options.debug ? LogLevel.DEBUG : LogLevel.INFO,
       });
-      const logger = Logger.getInstance({ name: "audio" });
+      const logger = Logger.getInstance({ name: "narration-gen" });
 
       // dry-runモード
       if (options.dryRun) {
@@ -90,7 +90,7 @@ export function audioCommand(): Command {
         };
 
         if (options.json) {
-          printJson(createSuccessOutput("audio", { dryRun: true, ...dryRunInfo }));
+          printJson(createSuccessOutput("narration gen", { dryRun: true, ...dryRunInfo }));
         } else {
           console.log("\n[DRY-RUN] 音声生成");
           console.log("  テキスト:", dryRunInfo.text);
@@ -173,7 +173,7 @@ export function audioCommand(): Command {
 
         if (options.json) {
           printJson(
-            createSuccessOutput("audio", {
+            createSuccessOutput("narration gen", {
               path: finalOutputPath,
               voice: effectiveVoice,
               language: options.lang,
@@ -188,14 +188,14 @@ export function audioCommand(): Command {
         if (error instanceof Error) {
           await logger.error("音声生成に失敗しました", { error: error.message });
           if (options.json) {
-            printJson(createErrorOutput("audio", error.message));
+            printJson(createErrorOutput("narration gen", error.message));
           } else {
             console.error("エラー:", error.message);
           }
         } else {
           await logger.error("不明なエラーが発生しました");
           if (options.json) {
-            printJson(createErrorOutput("audio", "不明なエラーが発生しました"));
+            printJson(createErrorOutput("narration gen", "不明なエラーが発生しました"));
           } else {
             console.error("不明なエラーが発生しました");
           }

@@ -1,22 +1,16 @@
 import * as fs from "node:fs/promises";
 import * as path from "node:path";
 import { Command } from "commander";
-import { LANGUAGE_DESCRIPTIONS, type SupportedLanguage } from "../lang.js";
-import { getApiKey, loadConfig } from "../utils/config.js";
-import { GeminiClient } from "../utils/gemini.js";
+import { LANGUAGE_DESCRIPTIONS, type SupportedLanguage } from "../../lang.js";
+import { getApiKey, loadConfig } from "../../utils/config.js";
+import { GeminiClient } from "../../utils/gemini.js";
 
 /**
- * メディアファイルの種類
+ * 画像データ
  */
-type MediaType = "image" | "audio";
-
-/**
- * メディアデータ
- */
-interface MediaData {
+interface ImageData {
   data: string;
   mimeType: string;
-  type: MediaType;
 }
 
 /**
@@ -30,12 +24,11 @@ interface ExplainOptions {
 }
 
 /**
- * ファイル拡張子からMIMEタイプとメディアタイプを取得
+ * ファイル拡張子からMIMEタイプを取得
  */
-function getMediaInfo(filePath: string): { mimeType: string; type: MediaType } {
+function getMimeType(filePath: string): string {
   const ext = path.extname(filePath).toLowerCase().slice(1);
 
-  // 画像フォーマット
   const imageFormats: Record<string, string> = {
     jpg: "image/jpeg",
     jpeg: "image/jpeg",
@@ -46,46 +39,30 @@ function getMediaInfo(filePath: string): { mimeType: string; type: MediaType } {
     heif: "image/heif",
   };
 
-  // 音声フォーマット
-  const audioFormats: Record<string, string> = {
-    mp3: "audio/mpeg",
-    wav: "audio/wav",
-    flac: "audio/flac",
-    aac: "audio/aac",
-    ogg: "audio/ogg",
-    m4a: "audio/mp4",
-  };
-
   if (imageFormats[ext]) {
-    return { mimeType: imageFormats[ext], type: "image" };
-  }
-
-  if (audioFormats[ext]) {
-    return { mimeType: audioFormats[ext], type: "audio" };
+    return imageFormats[ext];
   }
 
   throw new Error(
     `サポートされていないファイル形式です: .${ext}\n` +
-      `対応形式 - 画像: ${Object.keys(imageFormats).join(", ")} / 音声: ${Object.keys(audioFormats).join(", ")}`
+      `対応形式: ${Object.keys(imageFormats).join(", ")}`
   );
 }
 
 /**
- * メディアファイルを読み込む
+ * 画像ファイルを読み込む
  */
-async function readMediaFile(filePath: string): Promise<MediaData> {
+async function readImageFile(filePath: string): Promise<ImageData> {
   try {
-    // ファイル存在チェック
     await fs.access(filePath);
 
     const buffer = await fs.readFile(filePath);
     const base64Data = buffer.toString("base64");
-    const { mimeType, type } = getMediaInfo(filePath);
+    const mimeType = getMimeType(filePath);
 
     return {
       data: base64Data,
       mimeType,
-      type,
     };
   } catch (error: unknown) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {
@@ -118,10 +95,10 @@ async function loadContext(contextPath?: string): Promise<string | undefined> {
   return contextPath;
 }
 
-export function explainCommand(): Command {
+export function imageExplainCommand(): Command {
   return new Command("explain")
-    .description("画像または音声ファイルの内容を説明")
-    .argument("<file>", "画像または音声ファイルのパス")
+    .description("画像の内容を説明")
+    .argument("<file>", "画像ファイルのパス")
     .option(
       "-l, --lang <lang>",
       `出力言語 (${Object.entries(LANGUAGE_DESCRIPTIONS)
@@ -143,8 +120,8 @@ export function explainCommand(): Command {
         const apiKey = await getApiKey();
         const client = new GeminiClient(apiKey);
 
-        // メディアファイル読み込み
-        const mediaData = await readMediaFile(filePath);
+        // 画像ファイル読み込み
+        const imageData = await readImageFile(filePath);
 
         // 言語バリデーション
         const validLanguages = Object.keys(LANGUAGE_DESCRIPTIONS) as SupportedLanguage[];
@@ -160,10 +137,10 @@ export function explainCommand(): Command {
         const context = await loadContext(options.context);
 
         // 説明生成
-        const explanation = await client.generateExplanation(mediaData, {
-          lang,
-          context,
-        });
+        const explanation = await client.generateExplanation(
+          { data: imageData.data, mimeType: imageData.mimeType, type: "image" },
+          { lang, context }
+        );
 
         // 出力フォーマット
         let output: string;
@@ -171,15 +148,14 @@ export function explainCommand(): Command {
           output = JSON.stringify(
             {
               file: filePath,
-              type: mediaData.type,
+              type: "image",
               explanation,
             },
             null,
             2
           );
         } else {
-          const typeLabel = mediaData.type === "image" ? "画像" : "音声";
-          output = `# ${filePath}\n\n**種類:** ${typeLabel}\n\n${explanation}`;
+          output = `# ${filePath}\n\n**種類:** 画像\n\n${explanation}`;
         }
 
         // 出力
