@@ -9,19 +9,21 @@ metadata:
 
 # ergon - AI Media Generation CLI
 
+> **Note:** Run with `npx ergon` if not installed globally.
+
 ## Quick Reference
 
 ```bash
-ergon image gen "<prompt>" -t <style> -a <ratio>   # Image generation
-ergon image edit <file> "<instruction>"            # Image editing
-ergon video gen "<prompt>" [-i <image>]            # Video with audio
-ergon narration gen "<text>" -c "<character>"      # Voice generation
+npx ergon image gen "<prompt>" -t <style> -a <ratio>   # Image generation
+npx ergon image edit <file> "<instruction>"            # Image editing
+npx ergon video gen "<prompt>" [-i <image>]            # Video with audio
+npx ergon narration gen "<text>" -c "<character>"      # Voice generation
 ```
 
 ## Image Generation
 
 ```bash
-ergon image gen [options] <theme>
+npx ergon image gen [options] <theme>
 ```
 
 ### Style Selection Guide
@@ -47,15 +49,15 @@ ergon image gen [options] <theme>
 
 **Examples:**
 ```bash
-ergon image gen "cute cat mascot for tech startup" -t anime -a 1:1
-ergon image gen "professional team meeting in modern office" -t corporate -a 16:9
-ergon image gen "abstract geometric logo" -t minimal -a 1:1 -o logo.png
+npx ergon image gen "cute cat mascot for tech startup" -t anime -a 1:1
+npx ergon image gen "professional team meeting in modern office" -t corporate -a 16:9
+npx ergon image gen "abstract geometric logo" -t minimal -a 1:1 -o logo.png
 ```
 
 ## Image Editing
 
 ```bash
-ergon image edit [options] <file> <prompt>
+npx ergon image edit [options] <file> <prompt>
 ```
 
 Edit instructions in natural language:
@@ -65,8 +67,8 @@ Edit instructions in natural language:
 - Color adjustment: "make colors more vibrant"
 
 ```bash
-ergon image edit photo.jpg "change background to blue sky"
-ergon image edit portrait.png "convert to anime style"
+npx ergon image edit photo.jpg "change background to blue sky"
+npx ergon image edit portrait.png "convert to anime style"
 ```
 
 ## Video Generation (with Audio)
@@ -74,7 +76,7 @@ ergon image edit portrait.png "convert to anime style"
 Veo 3.1 generates videos **with synchronized audio**. Include audio/sound instructions directly in the prompt.
 
 ```bash
-ergon video gen [options] <theme>
+npx ergon video gen [options] <theme>
 ```
 
 ### Prompt Structure for Audio-Video
@@ -83,13 +85,13 @@ Include sound descriptions in your prompt:
 
 ```bash
 # Sound effects included
-ergon video gen "cat meowing and playing with a ball, soft purring sounds"
+npx ergon video gen "cat meowing and playing with a ball, soft purring sounds"
 
 # Music/ambient audio
-ergon video gen "sunset timelapse over ocean, with calming wave sounds and soft piano music"
+npx ergon video gen "sunset timelapse over ocean, with calming wave sounds and soft piano music"
 
 # Dialogue/voice
-ergon video gen "person saying 'welcome to our channel' with friendly tone, waving at camera"
+npx ergon video gen "person saying 'welcome to our channel' with friendly tone, waving at camera"
 ```
 
 ### Image-to-Video
@@ -97,8 +99,8 @@ ergon video gen "person saying 'welcome to our channel' with friendly tone, wavi
 Animate a static image with motion and sound:
 
 ```bash
-ergon video gen "character starts dancing to upbeat music" -i character.png
-ergon video gen "logo reveals with whoosh sound effect" -i logo.png
+npx ergon video gen "character starts dancing to upbeat music" -i character.png
+npx ergon video gen "logo reveals with whoosh sound effect" -i logo.png
 ```
 
 ### Options
@@ -117,7 +119,7 @@ Vertical video for TikTok/Reels: `-a 9:16`
 For voice-only audio without video, use narration command.
 
 ```bash
-ergon narration gen [options] <text>
+npx ergon narration gen [options] <text>
 ```
 
 ### Character and Acting Direction
@@ -126,13 +128,13 @@ Use `-c` (character) and `-d` (direction) for expressive voice:
 
 ```bash
 # Character defines WHO is speaking
-ergon narration gen "Let's go on an adventure!" -c "energetic young girl"
+npx ergon narration gen "Let's go on an adventure!" -c "energetic young girl"
 
 # Direction defines HOW they speak
-ergon narration gen "The results are in..." -c "news anchor" -d "serious, building suspense"
+npx ergon narration gen "The results are in..." -c "news anchor" -d "serious, building suspense"
 
 # Combined for full expression
-ergon narration gen "Yay! We did it!" -c "excited child" -d "jumping with joy, high energy"
+npx ergon narration gen "Yay! We did it!" -c "excited child" -d "jumping with joy, high energy"
 ```
 
 ### Voice Selection
@@ -159,20 +161,20 @@ ergon narration gen "Yay! We did it!" -c "excited child" -d "jumping with joy, h
 
 ### Generate, then Edit
 ```bash
-ergon image gen "product photo of headphones" -t realistic
-ergon image edit headphones.png "add soft shadow, white background"
+npx ergon image gen "product photo of headphones" -t realistic
+npx ergon image edit headphones.png "add soft shadow, white background"
 ```
 
 ### Image to Animated Video
 ```bash
-ergon image gen "mascot character standing" -t anime -a 1:1
-ergon video gen "mascot waves and says hello cheerfully" -i mascot.png
+npx ergon image gen "mascot character standing" -t anime -a 1:1
+npx ergon video gen "mascot waves and says hello cheerfully" -i mascot.png
 ```
 
 ### Preview Before Generation
 ```bash
-ergon image gen "complex scene" --dry-run  # Check settings
-ergon video gen "expensive render" --dry-run  # Verify before API call
+npx ergon image gen "complex scene" --dry-run  # Check settings
+npx ergon video gen "expensive render" --dry-run  # Verify before API call
 ```
 
 ## Common Options

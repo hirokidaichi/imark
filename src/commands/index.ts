@@ -1,4 +1,5 @@
 import { Command } from "commander";
+import { t } from "../utils/i18n.js";
 import { completionsCommand } from "./completions.js";
 import { configureCommand } from "./configure.js";
 import { imageCommand } from "./image/index.js";
@@ -11,15 +12,21 @@ export function createMainCommand(): Command {
   const program = new Command()
     .name("ergon")
     .version("0.4.0")
-    .description("AI画像・動画・音声生成ツール")
+    .description(t("mainDescription"))
+    .addHelpText("before", t("banner"))
+    .addHelpText("after", t("examples"))
     .action(() => {
-      console.log("サブコマンドを指定してください: image, video, narration, preset, configure, log");
-      console.log("\n例:");
-      console.log("  ergon image gen <theme>     - Imagen4で画像生成");
-      console.log("  ergon image edit <file> <prompt> - Nano Bananaで画像編集");
-      console.log("  ergon image explain <file>  - 画像の説明");
-      console.log("  ergon video gen <theme>     - Veo 3.1で動画生成");
-      console.log("  ergon narration gen <text>  - TTSで音声生成");
+      console.log(t("banner"));
+      console.log(`${t("specifySubcommand")}\n`);
+      console.log(t("mediaGeneration"));
+      console.log(`  image      ${t("imageDescription")}`);
+      console.log(`  video      ${t("videoDescription")}`);
+      console.log(`  narration  ${t("narrationDescription")}`);
+      console.log(`\n${t("utilities")}`);
+      console.log(`  preset     ${t("presetDescription")}`);
+      console.log(`  configure  ${t("configureDescription")}`);
+      console.log(`  log        ${t("logDescription")}`);
+      console.log(t("examples"));
       process.exit(1);
     });
 

@@ -4,6 +4,7 @@ import { Command, Option } from "commander";
 import { getApiKey } from "../../utils/config.js";
 import { saveFileWithUniqueNameIfExists } from "../../utils/file.js";
 import { GeminiClient } from "../../utils/gemini.js";
+import { t } from "../../utils/i18n.js";
 import { LogDestination, Logger, LogLevel } from "../../utils/logger.js";
 import { createErrorOutput, createSuccessOutput, printJson } from "../../utils/output.js";
 import {
@@ -34,7 +35,7 @@ export function videoGenCommand(): Command {
   const aspectRatioChoices: VideoAspectRatio[] = ["16:9", "9:16"];
 
   return new Command("gen")
-    .description("動画を生成します (Veo 3.1)")
+    .description(t("videoGenCmd"))
     .argument("<theme>", "動画生成のテーマ")
     .option("-i, --input <file>", "入力画像のパス（image-to-video）")
     .option("-o, --output <path>", "出力パス（ファイルまたはディレクトリ）")

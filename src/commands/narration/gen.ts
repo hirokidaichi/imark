@@ -3,6 +3,7 @@ import { Command, Option } from "commander";
 import { getApiKey, loadConfig } from "../../utils/config.js";
 import { saveFileWithUniqueNameIfExists } from "../../utils/file.js";
 import { GeminiClient } from "../../utils/gemini.js";
+import { t } from "../../utils/i18n.js";
 import { LogDestination, Logger, LogLevel } from "../../utils/logger.js";
 import { createErrorOutput, createSuccessOutput, printJson } from "../../utils/output.js";
 import {
@@ -37,7 +38,7 @@ interface GenOptions {
 
 export function narrationGenCommand(): Command {
   return new Command("gen")
-    .description("音声ナレーションを生成します (TTS)")
+    .description(t("narrationGenCmd"))
     .argument("<text>", "読み上げるテキスト")
     .option("-o, --output <path>", "出力パス（ファイルまたはディレクトリ）")
     .addOption(

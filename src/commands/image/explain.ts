@@ -4,6 +4,7 @@ import { Command } from "commander";
 import { LANGUAGE_DESCRIPTIONS, type SupportedLanguage } from "../../lang.js";
 import { getApiKey, loadConfig } from "../../utils/config.js";
 import { GeminiClient } from "../../utils/gemini.js";
+import { t } from "../../utils/i18n.js";
 
 /**
  * 画像データ
@@ -97,7 +98,7 @@ async function loadContext(contextPath?: string): Promise<string | undefined> {
 
 export function imageExplainCommand(): Command {
   return new Command("explain")
-    .description("画像の内容を説明")
+    .description(t("imageExplainCmd"))
     .argument("<file>", "画像ファイルのパス")
     .option(
       "-l, --lang <lang>",

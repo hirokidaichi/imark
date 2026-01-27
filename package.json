@@ -1,6 +1,6 @@
 {
-  "name": "@hirokidaichi/ergon",
-  "version": "0.4.0",
+  "name": "ergon",
+  "version": "0.4.1",
   "description": "AI画像・動画・音声生成ツール - Google Gemini/Imagen/Veo APIを使用",
   "type": "module",
   "bin": {

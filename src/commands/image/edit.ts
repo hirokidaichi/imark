@@ -4,6 +4,7 @@ import { Command, Option } from "commander";
 import { getApiKey } from "../../utils/config.js";
 import { saveFileWithUniqueNameIfExists } from "../../utils/file.js";
 import { GeminiClient } from "../../utils/gemini.js";
+import { t } from "../../utils/i18n.js";
 import { DEFAULT_OPTIONS, type ImageFormat, VALID_IMAGE_FORMATS } from "../../utils/image_constants.js";
 import { LogDestination, Logger, LogLevel } from "../../utils/logger.js";
 import { NanoBananaClient, type NanoBananaEngine } from "../../utils/nano-banana.js";
@@ -75,7 +76,7 @@ async function resolveOutputPath(
 
 export function imageEditCommand(): Command {
   return new Command("edit")
-    .description("画像を編集します (Nano Banana)")
+    .description(t("imageEditCmd"))
     .argument("<file>", "編集する画像ファイルのパス")
     .argument("<prompt>", "編集指示（例: 背景を青空に変更）")
     .option("-o, --output <path>", "出力パス（ファイルまたはディレクトリ）")

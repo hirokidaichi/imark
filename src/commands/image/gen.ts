@@ -4,6 +4,7 @@ import { Command, Option } from "commander";
 import { getApiKey, loadConfig } from "../../utils/config.js";
 import { loadContextFile, saveFileWithUniqueNameIfExists } from "../../utils/file.js";
 import { GeminiClient } from "../../utils/gemini.js";
+import { t } from "../../utils/i18n.js";
 import {
   ASPECT_RATIOS,
   type AspectRatio,
@@ -102,7 +103,7 @@ export function imageGenCommand(): Command {
   const engineChoices = Object.keys(ENGINE_MODEL_IDS);
 
   return new Command("gen")
-    .description("画像を生成します (Imagen 4)")
+    .description(t("imageGenCmd"))
     .argument("<theme>", "画像生成のテーマ")
     .option("-c, --context <file>", "コンテキストファイルのパス")
     .option("-o, --output <path>", "出力パス（ファイルまたはディレクトリ）")
