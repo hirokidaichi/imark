@@ -9,7 +9,7 @@
   <img src="https://img.shields.io/npm/v/@hirokidaichi/ergon" alt="npm version">
 </p>
 
-![サンプル画像](samples/beautiful-mountain-landscape-snow-peaks-.webp)
+![サンプル画像](samples/mountain-landscape-realistic.png)
 
 AI搭載の画像・動画・音声生成ツール - メディアを理解し、創造する
 
@@ -106,7 +106,7 @@ ergon image gen [options] <theme>
 | `-s, --size <size>` | サイズ（tiny/hd/fullhd/2k/4k） | fullhd |
 | `-a, --aspect-ratio <ratio>` | アスペクト比（16:9/4:3/1:1/9:16/3:4） | 16:9 |
 | `-t, --type <type>` | スタイル（下記参照） | flat |
-| `-f, --format <format>` | フォーマット（png/jpg/webp） | webp |
+| `-f, --format <format>` | フォーマット（png/jpg/jpeg） | png |
 | `-e, --engine <engine>` | エンジン（imagen4/imagen4-fast/imagen4-ultra） | imagen4 |
 | `-p, --preset <name>` | プリセット名 | - |
 | `-c, --context <file>` | コンテキストファイル | - |
@@ -145,7 +145,7 @@ ergon image edit [options] <file> <prompt>
 | オプション | 説明 | デフォルト |
 |-----------|------|----------|
 | `-o, --output <path>` | 出力パス | 自動生成 |
-| `-f, --format <format>` | フォーマット（png/jpg/webp） | webp |
+| `-f, --format <format>` | フォーマット（png/jpg/jpeg/webp） | png |
 | `-e, --engine <engine>` | エンジン（nano-banana/nano-banana-pro） | nano-banana |
 | `--json` | JSON形式で出力 | false |
 | `--dry-run` | 実行せずに設定確認 | false |
@@ -323,16 +323,16 @@ ergon log [options]
 
 | スタイル | コマンド | 生成例 |
 |---------|---------|--------|
-| リアリスティック | `ergon image gen "mountain landscape" -t realistic` | ![realistic](samples/beautiful-mountain-landscape-snow-peaks-.webp) |
-| アニメ | `ergon image gen "cute cat character" -t anime -a 1:1` | ![anime](samples/cute-anime-girl-with-cat-ears.webp) |
-| フラット | `ergon image gen "email icon" -t flat -a 1:1` | ![flat](samples/simple-modern-email-icon.webp) |
-| 水彩画 | `ergon image gen "spring flowers" -t watercolor -a 1:1` | ![watercolor](samples/colorful-bouquet-of-spring-flowers.webp) |
-| ピクセルアート | `ergon image gen "game character" -t pixel-art -a 1:1` | ![pixel-art](samples/retro-style-game-character.webp) |
-| 3Dレンダリング | `ergon image gen "futuristic building" -t 3d-render -a 1:1` | ![3d-render](samples/futuristic-skyscraper-glass-steel.webp) |
-| コーポレート | `ergon image gen "business meeting" -t corporate` | ![corporate](samples/professional-business-team-meeting-offic.webp) |
-| ミニマル | `ergon image gen "geometric logo" -t minimal -a 1:1` | ![minimal](samples/abstract-geometric-minimal-logo-design.webp) |
-| ポップアート | `ergon image gen "woman portrait" -t pop-art -a 1:1` | ![pop-art](samples/colorful-pop-art-portrait-of-a-woman.webp) |
-| スケッチ | `ergon image gen "elderly man portrait" -t sketch -a 1:1` | ![sketch](samples/pencil-sketch-portrait-of-an-elderly-man.webp) |
+| リアリスティック | `ergon image gen "mountain landscape" -t realistic` | ![realistic](samples/mountain-landscape-realistic.png) |
+| アニメ | `ergon image gen "cute cat character" -t anime -a 1:1` | ![anime](samples/anime-cat-character.png) |
+| フラット | `ergon image gen "email icon" -t flat -a 1:1` | ![flat](samples/flat-email-icon.png) |
+| 水彩画 | `ergon image gen "spring flowers" -t watercolor -a 1:1` | ![watercolor](samples/watercolor-spring-flowers.png) |
+| ピクセルアート | `ergon image gen "game character" -t pixel-art -a 1:1` | ![pixel-art](samples/pixel-art-game-character.png) |
+| 3Dレンダリング | `ergon image gen "futuristic building" -t 3d-render -a 1:1` | ![3d-render](samples/3d-render-futuristic-building.png) |
+| コーポレート | `ergon image gen "business meeting" -t corporate` | ![corporate](samples/corporate-business-meeting.png) |
+| ミニマル | `ergon image gen "geometric logo" -t minimal -a 1:1` | ![minimal](samples/minimal-geometric-logo.png) |
+| ポップアート | `ergon image gen "woman portrait" -t pop-art -a 1:1` | ![pop-art](samples/pop-art-woman-portrait.png) |
+| スケッチ | `ergon image gen "elderly man portrait" -t sketch -a 1:1` | ![sketch](samples/sketch-elderly-man-portrait.png) |
 
 ---
 
@@ -340,11 +340,13 @@ ergon log [options]
 
 Veo 3.1による動画生成サンプル（音声付き）：
 
-| スタイル | コマンド | サンプル |
+| スタイル | コマンド | プレビュー |
 |---------|---------|----------|
-| リアル | `ergon video gen "sunrise over mountain lake, birds flying, ambient nature sounds" --fast` | [🎬 再生](https://raw.githubusercontent.com/hirokidaichi/ergon/main/samples/video-realistic-sunrise.mp4) |
-| ポップ | `ergon video gen "cartoon character dancing with confetti, upbeat pop music" --fast` | [🎬 再生](https://raw.githubusercontent.com/hirokidaichi/ergon/main/samples/video-pop-dance.mp4) |
-| アニメ | `ergon video gen "anime magical girl transformation, sparkling effects, dramatic music" --fast` | [🎬 再生](https://raw.githubusercontent.com/hirokidaichi/ergon/main/samples/video-anime-magical.mp4) |
+| リアル | `ergon video gen "sunrise over mountain lake, birds flying, ambient nature sounds" --fast` | ![realistic](samples/video-realistic-sunrise.gif) |
+| ポップ | `ergon video gen "cartoon character dancing with confetti, upbeat pop music" --fast` | ![pop](samples/video-pop-dance.gif) |
+| アニメ | `ergon video gen "anime magical girl transformation, sparkling effects, dramatic music" --fast` | ![anime](samples/video-anime-magical.gif) |
+
+> 💡 音声付き動画: [リアル](https://raw.githubusercontent.com/hirokidaichi/ergon/main/samples/video-realistic-sunrise.mp4) | [ポップ](https://raw.githubusercontent.com/hirokidaichi/ergon/main/samples/video-pop-dance.mp4) | [アニメ](https://raw.githubusercontent.com/hirokidaichi/ergon/main/samples/video-anime-magical.mp4)
 
 ---
 

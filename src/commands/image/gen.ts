@@ -113,10 +113,9 @@ export function imageGenCommand(): Command {
       ).default(DEFAULT_OPTIONS.size)
     )
     .addOption(
-      new Option(
-        "-a, --aspect-ratio <ratio>",
-        `アスペクト比 (${aspectRatioChoices.join(" | ")})`
-      ).default(DEFAULT_OPTIONS.aspectRatio)
+      new Option("-a, --aspect-ratio <ratio>", `アスペクト比 (${aspectRatioChoices.join(" | ")})`).default(
+        DEFAULT_OPTIONS.aspectRatio
+      )
     )
     .addOption(
       new Option(
@@ -125,7 +124,7 @@ export function imageGenCommand(): Command {
       ).default(DEFAULT_OPTIONS.type)
     )
     .addOption(
-      new Option("-f, --format <format>", "画像のフォーマット (png | jpg | jpeg | webp)").default(
+      new Option("-f, --format <format>", "画像のフォーマット (png | jpg | jpeg)").default(
         DEFAULT_OPTIONS.format
       )
     )

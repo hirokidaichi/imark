@@ -160,13 +160,13 @@ ergon narration gen "Yay! We did it!" -c "excited child" -d "jumping with joy, h
 ### Generate, then Edit
 ```bash
 ergon image gen "product photo of headphones" -t realistic
-ergon image edit headphones.webp "add soft shadow, white background"
+ergon image edit headphones.png "add soft shadow, white background"
 ```
 
 ### Image to Animated Video
 ```bash
 ergon image gen "mascot character standing" -t anime -a 1:1
-ergon video gen "mascot waves and says hello cheerfully" -i mascot.webp
+ergon video gen "mascot waves and says hello cheerfully" -i mascot.png
 ```
 
 ### Preview Before Generation

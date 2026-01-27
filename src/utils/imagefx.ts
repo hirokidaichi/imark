@@ -7,8 +7,10 @@ import * as fs from "node:fs/promises";
 import {
   ASPECT_RATIOS,
   type AspectRatio,
+  type AspectRatioPreset,
   DEFAULT_OPTIONS,
   IMAGE_TYPE_PROMPTS,
+  type ImageFormat,
   type ImageFXOptions,
   type ImageType,
   type PersonGeneration,
@@ -21,7 +23,9 @@ import { Logger } from "./logger.js";
 export { ASPECT_RATIOS, DEFAULT_OPTIONS, IMAGE_TYPE_PROMPTS, SIZE_PRESETS };
 export type {
   AspectRatio,
+  AspectRatioPreset,
   ImageFXOptions,
+  ImageFormat,
   ImageType,
   PersonGeneration,
   SafetyFilterLevel,
@@ -45,6 +49,19 @@ export const ENGINE_MODEL_IDS: Record<ImageEngine, string> = {
   "imagen4-ultra": "imagen-4.0-ultra-generate-001",
 };
 
+/**
+ * 画像フォーマットをMIMEタイプに変換
+ */
+function formatToMimeType(format: ImageFormat): string {
+  const mimeTypes: Record<ImageFormat, string> = {
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    webp: "image/webp",
+  };
+  return mimeTypes[format] || "image/png";
+}
+
 export interface ImageFXClientOptions extends ImageFXOptions {
   engine?: ImageEngine;
 }
@@ -64,19 +81,39 @@ export class ImageFXClient {
   async generateImage(prompt: string, options: ImageFXClientOptions = {}): Promise<Uint8Array> {
     const {
       aspectRatio = DEFAULT_OPTIONS.aspectRatio,
+      format = DEFAULT_OPTIONS.format,
       numberOfImages = DEFAULT_OPTIONS.numberOfImages,
       safetyFilterLevel = DEFAULT_OPTIONS.safetyFilterLevel,
       personGeneration = DEFAULT_OPTIONS.personGeneration,
       engine = "imagen4",
     } = options;
 
+    // アスペクト比の検証（Imagen APIは特定の値のみサポート）
+    const supportedAspectRatios = ["1:1", "9:16", "16:9", "4:3", "3:4"];
+    if (!supportedAspectRatios.includes(aspectRatio as string)) {
+      throw new Error(
+        `サポートされていないアスペクト比です: ${aspectRatio}。使用可能: ${supportedAspectRatios.join(", ")}`
+      );
+    }
+
+    // フォーマットの検証（Imagen APIはpngとjpegのみサポート）
+    const supportedFormats = ["png", "jpg", "jpeg"];
+    if (!supportedFormats.includes(format as string)) {
+      throw new Error(
+        `サポートされていないフォーマットです: ${format}。Imagen APIは png, jpg, jpeg のみ対応しています`
+      );
+    }
+
     const modelId = ENGINE_MODEL_IDS[engine];
+    const outputMimeType = formatToMimeType(format as ImageFormat);
 
     this.logger.debug("=== ImageFX Debug Info ===");
     this.logger.debug(`Prompt: ${prompt}`);
     this.logger.debug(`Engine: ${engine}`);
     this.logger.debug(`Model ID: ${modelId}`);
     this.logger.debug(`Aspect Ratio: ${aspectRatio}`);
+    this.logger.debug(`Format: ${format}`);
+    this.logger.debug(`Output MIME Type: ${outputMimeType}`);
     this.logger.debug(`Number of Images: ${numberOfImages}`);
     this.logger.debug(`Safety Filter Level: ${safetyFilterLevel}`);
     this.logger.debug(`Person Generation: ${personGeneration}`);
@@ -88,7 +125,8 @@ export class ImageFXClient {
         prompt,
         config: {
           numberOfImages,
-          aspectRatio,
+          aspectRatio: aspectRatio as string,
+          outputMimeType,
           safetyFilterLevel: safetyFilterLevel as SDKSafetyFilterLevel,
           personGeneration: personGeneration as SDKPersonGeneration,
         },

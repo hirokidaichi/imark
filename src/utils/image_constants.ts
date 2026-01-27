@@ -25,9 +25,14 @@ export type ImageType =
   | "pop-art"; // ポップアート風
 
 /**
- * アスペクト比の型定義
+ * アスペクト比プリセットの型定義
  */
-export type AspectRatio = "16:9" | "4:3" | "1:1" | "9:16" | "3:4";
+export type AspectRatioPreset = "16:9" | "4:3" | "1:1" | "9:16" | "3:4";
+
+/**
+ * アスペクト比の型定義（プリセットまたは任意の "N:M" 形式）
+ */
+export type AspectRatio = AspectRatioPreset | string;
 
 /**
  * サイズプリセットの型定義
@@ -70,15 +75,38 @@ export const SIZE_PRESETS: Record<SizePreset, { width: number; height: number }>
 } as const;
 
 /**
- * アスペクト比の定義
+ * アスペクト比プリセットの定義
  */
-export const ASPECT_RATIOS: Record<AspectRatio, number> = {
+export const ASPECT_RATIOS: Record<AspectRatioPreset, number> = {
   "16:9": 16 / 9,
   "4:3": 4 / 3,
   "1:1": 1,
   "9:16": 9 / 16,
   "3:4": 3 / 4,
 } as const;
+
+/**
+ * アスペクト比をパースする
+ * @param ratio "N:M" 形式のアスペクト比
+ * @returns パースされた数値、または無効な場合は null
+ */
+export function parseAspectRatio(ratio: string): number | null {
+  const match = ratio.match(/^(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$/);
+  if (!match) return null;
+  const width = parseFloat(match[1]);
+  const height = parseFloat(match[2]);
+  if (width <= 0 || height <= 0) return null;
+  return width / height;
+}
+
+/**
+ * アスペクト比が有効かどうかを検証する
+ * @param ratio "N:M" 形式のアスペクト比
+ * @returns 有効なら true
+ */
+export function isValidAspectRatio(ratio: string): boolean {
+  return parseAspectRatio(ratio) !== null;
+}
 
 /**
  * 画像タイプごとのプロンプト定義
@@ -110,7 +138,7 @@ export const IMAGE_TYPE_PROMPTS: Record<ImageType, string> = {
 export const DEFAULT_OPTIONS: ImageFXOptions = {
   size: "fullhd",
   aspectRatio: "16:9",
-  format: "webp",
+  format: "png",
   quality: 90,
   type: "flat",
   numberOfImages: 1,
