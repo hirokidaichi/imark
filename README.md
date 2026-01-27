@@ -40,6 +40,14 @@ npm install -g @hirokidaichi/ergon
 ergon image gen "beautiful sunset"
 ```
 
+### AIエージェント用スキルとして追加
+
+Claude Code や Cursor などのAIエージェントにスキルとして追加：
+
+```bash
+npx skills add hirokidaichi/ergon
+```
+
 ### ソースコードからのインストール
 
 ```bash
