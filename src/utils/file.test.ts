@@ -15,7 +15,7 @@ describe("ファイル操作ユーティリティのテスト", () => {
 
   // 各テスト前に一時ディレクトリを作成
   beforeEach(async () => {
-    tempDirPath = await fs.mkdtemp(path.join(os.tmpdir(), "imark_test_file_"));
+    tempDirPath = await fs.mkdtemp(path.join(os.tmpdir(), "ergon_test_file_"));
   });
 
   // 各テスト後にテストファイルを削除

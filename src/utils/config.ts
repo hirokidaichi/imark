@@ -29,7 +29,7 @@ export type VoiceConfig = "Aoede" | "Charon" | "Fenrir" | "Kore" | "Puck";
 export type LogLevelConfig = "debug" | "info" | "warn" | "error";
 
 /**
- * imark設定
+ * ergon設定
  */
 export interface Config {
   // API設定
@@ -84,7 +84,7 @@ export function getConfigDir(): string {
   if (!home) {
     throw new Error("HOME環境変数が設定されていません");
   }
-  return path.join(home, ".imark");
+  return path.join(home, ".ergon");
 }
 
 export function getConfigPath(): string {
@@ -194,7 +194,7 @@ export async function getApiKey(): Promise<string> {
   }
 
   throw new Error(
-    "GOOGLE_API_KEYが設定されていません。`imark configure`コマンドで設定してください。"
+    "GOOGLE_API_KEYが設定されていません。`ergon configure`コマンドで設定してください。"
   );
 }
 

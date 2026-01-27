@@ -1,4 +1,4 @@
-# CLAUDE.md - Guide for Development with imark
+# CLAUDE.md - Guide for Development with ergon
 
 ## Build & Test Commands
 - `npm run dev -- <command>` - Run development server

@@ -30,7 +30,7 @@ describe("readImageFile", () => {
   let tempDir: string;
 
   beforeEach(async () => {
-    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "imark_test_image_"));
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "ergon_test_image_"));
   });
 
   afterEach(async () => {

@@ -50,7 +50,7 @@ export class Logger {
     if (!home) {
       throw new Error("HOME環境変数が設定されていません");
     }
-    this.logDir = path.join(home, ".imark", "logs");
+    this.logDir = path.join(home, ".ergon", "logs");
     this.currentLogFile = this.generateLogFileName();
   }
 

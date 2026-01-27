@@ -133,7 +133,7 @@ export function imageGenCommand(): Command {
     .option("-d, --debug", "デバッグモード（生成されたプロンプトを表示）", false)
     .option("--json", "JSON形式で出力", false)
     .option("--dry-run", "実行せずに設定を確認", false)
-    .option("-p, --preset <name>", "プリセット名 (imark preset list で一覧表示)")
+    .option("-p, --preset <name>", "プリセット名 (ergon preset list で一覧表示)")
     .addOption(
       new Option(
         "-e, --engine <engine>",
@@ -157,7 +157,7 @@ export function imageGenCommand(): Command {
       if (options.preset) {
         const preset = await getPreset(options.preset);
         if (!preset) {
-          const errorMsg = `プリセット '${options.preset}' が見つかりません。\nimark preset list で一覧を確認してください。`;
+          const errorMsg = `プリセット '${options.preset}' が見つかりません。\nergon preset list で一覧を確認してください。`;
           if (options.json) {
             printJson(createErrorOutput("image gen", errorMsg, "PRESET_NOT_FOUND"));
           } else {

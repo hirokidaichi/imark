@@ -9,10 +9,12 @@ import {
   DEFAULT_TTS_OPTIONS,
   TTS_FORMATS,
   TTS_LANGUAGES,
+  TTS_MODELS,
   TTS_VOICES,
   TTSClient,
   type TTSFormat,
   type TTSLanguage,
+  type TTSModel,
   type TTSVoice,
 } from "../../utils/tts.js";
 
@@ -21,10 +23,13 @@ import {
  */
 interface GenOptions {
   output?: string;
+  model: TTSModel;
   voice: TTSVoice;
   lang: TTSLanguage;
   format: TTSFormat;
   speed: string;
+  character?: string;
+  direction?: string;
   debug: boolean;
   json: boolean;
   dryRun: boolean;
@@ -35,6 +40,11 @@ export function narrationGenCommand(): Command {
     .description("音声ナレーションを生成します (TTS)")
     .argument("<text>", "読み上げるテキスト")
     .option("-o, --output <path>", "出力パス（ファイルまたはディレクトリ）")
+    .addOption(
+      new Option("-m, --model <model>", `モデル (${TTS_MODELS.join(" | ")})`).default(
+        DEFAULT_TTS_OPTIONS.model
+      )
+    )
     .addOption(
       new Option("-v, --voice <voice>", `音声 (${TTS_VOICES.join(" | ")})`).default(
         DEFAULT_TTS_OPTIONS.voice
@@ -53,6 +63,8 @@ export function narrationGenCommand(): Command {
     .addOption(
       new Option("--speed <speed>", "話速 (0.25-4.0)").default(String(DEFAULT_TTS_OPTIONS.speed))
     )
+    .option("-c, --character <description>", "キャラクター設定（例: 元気な5歳の女の子）")
+    .option("-d, --direction <instruction>", "演技プラン（例: 興奮して叫んでいる、テンション高め）")
     .option("--debug", "デバッグモード", false)
     .option("--json", "JSON形式で出力", false)
     .option("--dry-run", "実行せずに設定を確認", false)
@@ -82,10 +94,13 @@ export function narrationGenCommand(): Command {
       if (options.dryRun) {
         const dryRunInfo = {
           text: text.length > 100 ? text.substring(0, 100) + "..." : text,
+          model: options.model,
           voice: effectiveVoice,
           language: options.lang,
           format: effectiveFormat,
           speed: options.speed,
+          ...(options.character && { character: options.character }),
+          ...(options.direction && { direction: options.direction }),
           output: options.output || `(自動生成).${effectiveFormat}`,
         };
 
@@ -94,10 +109,17 @@ export function narrationGenCommand(): Command {
         } else {
           console.log("\n[DRY-RUN] 音声生成");
           console.log("  テキスト:", dryRunInfo.text);
+          console.log("  モデル:", options.model);
           console.log("  音声:", effectiveVoice);
           console.log("  言語:", options.lang);
           console.log("  フォーマット:", effectiveFormat);
           console.log("  話速:", options.speed);
+          if (options.character) {
+            console.log("  キャラクター:", options.character);
+          }
+          if (options.direction) {
+            console.log("  演技プラン:", options.direction);
+          }
           console.log("  出力先:", options.output || `(自動生成).${effectiveFormat}`);
           console.log("\nAPIは呼び出されません。実行するには --dry-run を外してください。");
         }
@@ -108,6 +130,11 @@ export function narrationGenCommand(): Command {
         const apiKey = await getApiKey();
         const ttsClient = new TTSClient(apiKey);
         const geminiClient = new GeminiClient(apiKey);
+
+        // モデルの検証
+        if (!TTS_MODELS.includes(options.model)) {
+          throw new Error(`無効なモデル: ${options.model}`);
+        }
 
         // 音声の検証
         if (!TTS_VOICES.includes(effectiveVoice as TTSVoice)) {
@@ -130,14 +157,21 @@ export function narrationGenCommand(): Command {
           throw new Error("話速は0.25〜4.0の範囲で指定してください");
         }
 
-        console.log(`音声を生成しています... (音声: ${effectiveVoice})`);
+        if (options.character || options.direction) {
+          console.log(`音声を生成しています... (モデル: ${options.model}, 音声: ${effectiveVoice}, キャラクター/演技指定あり)`);
+        } else {
+          console.log(`音声を生成しています... (モデル: ${options.model}, 音声: ${effectiveVoice})`);
+        }
 
         // 音声生成
         const result = await ttsClient.generateSpeech(text, {
+          model: options.model,
           voice: effectiveVoice as TTSVoice,
           language: options.lang,
           format: effectiveFormat as TTSFormat,
           speed,
+          character: options.character,
+          direction: options.direction,
         });
 
         // ファイル名生成（テキストの先頭から）
@@ -165,20 +199,26 @@ export function narrationGenCommand(): Command {
 
         await logger.info("音声を生成しました", {
           path: finalOutputPath,
+          model: options.model,
           voice: effectiveVoice,
           language: options.lang,
           format: effectiveFormat,
           speed,
+          ...(options.character && { character: options.character }),
+          ...(options.direction && { direction: options.direction }),
         });
 
         if (options.json) {
           printJson(
             createSuccessOutput("narration gen", {
               path: finalOutputPath,
+              model: options.model,
               voice: effectiveVoice,
               language: options.lang,
               format: effectiveFormat,
               speed,
+              ...(options.character && { character: options.character }),
+              ...(options.direction && { direction: options.direction }),
             })
           );
         } else {

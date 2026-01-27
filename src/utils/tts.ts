@@ -3,6 +3,24 @@ import lamejs from "@breezystack/lamejs";
 import { Logger } from "./logger.js";
 
 /**
+ * TTSモデルの種類
+ */
+export type TTSModel = "flash" | "pro";
+
+/**
+ * 利用可能なTTSモデルの一覧
+ */
+export const TTS_MODELS: TTSModel[] = ["flash", "pro"];
+
+/**
+ * TTSモデルごとのモデルID
+ */
+export const TTS_MODEL_IDS: Record<TTSModel, string> = {
+  flash: "gemini-2.5-flash-preview-tts",
+  pro: "gemini-2.5-pro-preview-tts",
+};
+
+/**
  * 利用可能な音声
  */
 export type TTSVoice = "Aoede" | "Charon" | "Fenrir" | "Kore" | "Puck";
@@ -57,16 +75,20 @@ export const TTS_LANGUAGES: TTSLanguage[] = [
  * TTS生成オプション
  */
 export interface TTSOptions {
+  model?: TTSModel;
   voice?: TTSVoice;
   language?: TTSLanguage;
   format?: TTSFormat;
   speed?: number; // 0.25 - 4.0
+  character?: string; // キャラクター設定（例: "元気な5歳の女の子"）
+  direction?: string; // 演技プラン（例: "興奮して叫んでいる"）
 }
 
 /**
- * デフォルトのTTSオプション
+ * デフォルトのTTSオプション（character, directionはオプショナルなので除外）
  */
-export const DEFAULT_TTS_OPTIONS: Required<TTSOptions> = {
+export const DEFAULT_TTS_OPTIONS: Required<Omit<TTSOptions, "character" | "direction">> = {
+  model: "pro",
   voice: "Kore",
   language: "ja",
   format: "mp3",
@@ -185,14 +207,47 @@ export class TTSClient {
   }
 
   /**
+   * キャラクターと演技プランを含めたプロンプトを生成します
+   * 演技指示を台本形式で埋め込み、モデルが自然に理解できるようにします
+   */
+  private buildPromptWithInstructions(
+    text: string,
+    character?: string,
+    direction?: string
+  ): string {
+    if (!character && !direction) {
+      return text;
+    }
+
+    // 台本形式で演技指示を埋め込む
+    // 例: （興奮しながら叫ぶ元気な女の子として）「えいっ！」
+    const parts: string[] = [];
+
+    if (character && direction) {
+      parts.push(`（${direction}${character}の声で）`);
+    } else if (character) {
+      parts.push(`（${character}の声で）`);
+    } else if (direction) {
+      parts.push(`（${direction}）`);
+    }
+
+    parts.push(text);
+
+    return parts.join("");
+  }
+
+  /**
    * テキストから音声を生成します
    */
   async generateSpeech(text: string, options: TTSOptions = {}): Promise<TTSResult> {
     const {
+      model = DEFAULT_TTS_OPTIONS.model,
       voice = DEFAULT_TTS_OPTIONS.voice,
       language = DEFAULT_TTS_OPTIONS.language,
       format = DEFAULT_TTS_OPTIONS.format,
       speed = DEFAULT_TTS_OPTIONS.speed,
+      character,
+      direction,
     } = options;
 
     // 速度の検証
@@ -200,21 +255,33 @@ export class TTSClient {
       throw new Error("話速は0.25〜4.0の範囲で指定してください");
     }
 
+    const modelId = TTS_MODEL_IDS[model];
+
     this.logger.debug("=== TTS Generation Debug Info ===");
     this.logger.debug(`Text: ${text.substring(0, 100)}...`);
+    this.logger.debug(`Model: ${model} (${modelId})`);
     this.logger.debug(`Voice: ${voice}`);
     this.logger.debug(`Language: ${language}`);
     this.logger.debug(`Format: ${format}`);
     this.logger.debug(`Speed: ${speed}`);
+    if (character) {
+      this.logger.debug(`Character: ${character}`);
+    }
+    if (direction) {
+      this.logger.debug(`Direction: ${direction}`);
+    }
     this.logger.debug("=================================");
 
+    // キャラクター・演技指示を含めたプロンプトを生成
+    const promptText = this.buildPromptWithInstructions(text, character, direction);
+
     try {
-      // Gemini 2.5 Flash TTS を使用
+      // 選択されたTTSモデルを使用
       const response = await this.ai.models.generateContent({
-        model: "gemini-2.5-flash-preview-tts",
+        model: modelId,
         contents: [
           {
-            parts: [{ text }],
+            parts: [{ text: promptText }],
           },
         ],
         config: {

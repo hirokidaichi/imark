@@ -62,7 +62,7 @@ export function logCommand(): Command {
       const lines = parseInt(options.lines, 10) || 20;
       const logLevel = parseLogLevel(options.level);
       const logger = Logger.getInstance({
-        name: options.mcp ? "mcp" : "imark",
+        name: options.mcp ? "mcp" : "ergon",
         config: {
           destination: LogDestination.CONSOLE,
         },

@@ -20,7 +20,7 @@ describe("config", () => {
   let originalGeminiApiKey: string | undefined;
 
   beforeEach(async () => {
-    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "imark-test-"));
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "ergon-test-"));
     originalHome = process.env.HOME;
     originalGoogleApiKey = process.env.GOOGLE_API_KEY;
     originalGeminiApiKey = process.env.GEMINI_API_KEY;
@@ -47,14 +47,14 @@ describe("config", () => {
   });
 
   describe("getConfigDir", () => {
-    it("should return ~/.imark", () => {
-      expect(getConfigDir()).toBe(path.join(tempDir, ".imark"));
+    it("should return ~/.ergon", () => {
+      expect(getConfigDir()).toBe(path.join(tempDir, ".ergon"));
     });
   });
 
   describe("getConfigPath", () => {
-    it("should return ~/.imark/config.json", () => {
-      expect(getConfigPath()).toBe(path.join(tempDir, ".imark", "config.json"));
+    it("should return ~/.ergon/config.json", () => {
+      expect(getConfigPath()).toBe(path.join(tempDir, ".ergon", "config.json"));
     });
   });
 
@@ -65,7 +65,7 @@ describe("config", () => {
     });
 
     it("should load config from file", async () => {
-      const configDir = path.join(tempDir, ".imark");
+      const configDir = path.join(tempDir, ".ergon");
       await fs.mkdir(configDir, { recursive: true });
       await fs.writeFile(
         path.join(configDir, "config.json"),
@@ -81,7 +81,7 @@ describe("config", () => {
     it("should create config directory and save config", async () => {
       await saveConfig({ googleApiKey: "test-key" });
 
-      const configPath = path.join(tempDir, ".imark", "config.json");
+      const configPath = path.join(tempDir, ".ergon", "config.json");
       const content = await fs.readFile(configPath, "utf-8");
       expect(JSON.parse(content)).toEqual({ googleApiKey: "test-key" });
     });

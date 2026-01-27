@@ -62,11 +62,13 @@ export interface VideoGenerationResult {
 export class VideoClient {
   private ai: GoogleGenAI;
   private logger: Logger;
+  private apiKey: string;
 
   constructor(apiKey: string) {
     if (!apiKey) {
       throw new Error("GOOGLE_API_KEYが設定されていません");
     }
+    this.apiKey = apiKey;
     this.ai = new GoogleGenAI({ apiKey });
     this.logger = Logger.getInstance({ name: "video" });
   }
@@ -162,11 +164,15 @@ export class VideoClient {
         throw new Error("動画URIが見つかりません");
       }
 
-      // 動画をダウンロード
+      // 動画をダウンロード（APIキーを追加）
       const videoUri = generatedVideo.video.uri;
       this.logger.debug(`動画URI: ${videoUri}`);
 
-      const videoResponse = await fetch(videoUri);
+      // URIにAPIキーを追加
+      const downloadUrl = new URL(videoUri);
+      downloadUrl.searchParams.set("key", this.apiKey);
+
+      const videoResponse = await fetch(downloadUrl.toString());
       if (!videoResponse.ok) {
         throw new Error(`動画のダウンロードに失敗しました: ${videoResponse.status}`);
       }

@@ -18,7 +18,7 @@ describe("preset", () => {
   let originalHome: string | undefined;
 
   beforeEach(async () => {
-    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "imark-preset-test-"));
+    tempDir = await fs.mkdtemp(path.join(os.tmpdir(), "ergon-preset-test-"));
     originalHome = process.env.HOME;
     process.env.HOME = tempDir;
   });
@@ -29,8 +29,8 @@ describe("preset", () => {
   });
 
   describe("getPresetsPath", () => {
-    it("should return ~/.imark/presets.json", () => {
-      expect(getPresetsPath()).toBe(path.join(tempDir, ".imark", "presets.json"));
+    it("should return ~/.ergon/presets.json", () => {
+      expect(getPresetsPath()).toBe(path.join(tempDir, ".ergon", "presets.json"));
     });
   });
 
@@ -61,7 +61,7 @@ describe("preset", () => {
     });
 
     it("should load presets from file", async () => {
-      const presetsDir = path.join(tempDir, ".imark");
+      const presetsDir = path.join(tempDir, ".ergon");
       await fs.mkdir(presetsDir, { recursive: true });
       await fs.writeFile(
         path.join(presetsDir, "presets.json"),
@@ -77,7 +77,7 @@ describe("preset", () => {
     it("should create presets directory and save presets", async () => {
       await savePresets({ instagram: { aspectRatio: "1:1" } });
 
-      const presetsPath = path.join(tempDir, ".imark", "presets.json");
+      const presetsPath = path.join(tempDir, ".ergon", "presets.json");
       const content = await fs.readFile(presetsPath, "utf-8");
       expect(JSON.parse(content)).toEqual({ instagram: { aspectRatio: "1:1" } });
     });

@@ -1,10 +1,10 @@
 {
-  "name": "@hirokidaichi/imark",
+  "name": "@hirokidaichi/ergon",
   "version": "0.4.0",
   "description": "AI画像・動画・音声生成ツール - Google Gemini/Imagen/Veo APIを使用",
   "type": "module",
   "bin": {
-    "imark": "./dist/index.js"
+    "ergon": "./dist/index.js"
   },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -42,7 +42,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/hirokidaichi/imark.git"
+    "url": "https://github.com/hirokidaichi/ergon.git"
   },
   "engines": {
     "node": ">=18.0.0"
