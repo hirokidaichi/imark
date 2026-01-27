@@ -27,10 +27,17 @@ ergonは単なる画像処理ツールではありません。画像・動画・
 
 ## インストール
 
-### npmからのインストール
+### npxで直接実行（インストール不要）
+
+```bash
+npx ergon image gen "beautiful sunset"
+```
+
+### グローバルインストール
 
 ```bash
 npm install -g @hirokidaichi/ergon
+ergon image gen "beautiful sunset"
 ```
 
 ### ソースコードからのインストール
