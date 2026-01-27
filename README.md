@@ -1,6 +1,13 @@
-# ergon
+<p align="center">
+  <img src="samples/ergon-logo.png" alt="ergon logo" width="200">
+</p>
 
-![GitHub License](https://img.shields.io/github/license/hirokidaichi/ergon)
+<h1 align="center">ergon</h1>
+
+<p align="center">
+  <img src="https://img.shields.io/github/license/hirokidaichi/ergon" alt="GitHub License">
+  <img src="https://img.shields.io/npm/v/@hirokidaichi/ergon" alt="npm version">
+</p>
 
 ![サンプル画像](samples/beautiful-mountain-landscape-snow-peaks-.webp)
 
