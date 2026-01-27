@@ -328,6 +328,31 @@ ergon log [options]
 
 ---
 
+## サンプル動画生成例
+
+Veo 3.1による動画生成サンプル（音声付き）：
+
+| スタイル | コマンド | サンプル |
+|---------|---------|----------|
+| リアル | `ergon video gen "sunrise over mountain lake, birds flying, ambient nature sounds" --fast` | [🎬 再生](samples/video-realistic-sunrise.mp4) |
+| ポップ | `ergon video gen "cartoon character dancing with confetti, upbeat pop music" --fast` | [🎬 再生](samples/video-pop-dance.mp4) |
+| アニメ | `ergon video gen "anime magical girl transformation, sparkling effects, dramatic music" --fast` | [🎬 再生](samples/video-anime-magical.mp4) |
+
+---
+
+## サンプルナレーション生成例
+
+キャラクター設定と演技指定による多彩な音声生成：
+
+| スタイル | コマンド | サンプル |
+|---------|---------|----------|
+| プロフェッショナル | `ergon narration gen "こんにちは、ergonへようこそ..." -c "プロフェッショナルな女性ナレーター" -d "落ち着いた声で"` | [🔊 再生](samples/narration-professional.mp3) |
+| 元気 | `ergon narration gen "わーい！すごい画像ができたよ！" -v Puck -c "元気いっぱいの子供" -d "興奮して楽しそうに"` | [🔊 再生](samples/narration-energetic.mp3) |
+| シネマティック | `ergon narration gen "Welcome to ergon..." -v Charon -c "Deep voiced narrator" -d "Cinematic style" -l en` | [🔊 再生](samples/narration-cinematic.mp3) |
+| 優しい | `ergon narration gen "素敵な作品ができましたね..." -v Aoede -c "優しいお姉さん" -d "穏やかに微笑みながら"` | [🔊 再生](samples/narration-gentle.mp3) |
+
+---
+
 ## 設定
 
 ### 設定ファイル
